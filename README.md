@@ -1,5 +1,5 @@
-# COURSENAME
-This is the repository for the LinkedIn Learning course `course-name`. The full course is available from [LinkedIn Learning][lil-course-url].
+# Cilium Essential Training: Hands-on Kubernetes Networking with eBPF
+This is the repository for the LinkedIn Learning course `Cilium Essential Training: Hands-on Kubernetes Networking with eBPF`. The full course is available from [LinkedIn Learning][lil-course-url].
 
 ![course-name-alt-text][lil-thumbnail-url] 
 
