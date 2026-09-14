@@ -23,7 +23,7 @@ httpd   ClusterIP   10.96.181.20    80/TCP    5s
 Create a cluster without kube-proxy, then install Cilium with kube-proxy replacement:
 ```shell
 kind create cluster --config kind-no-kube-proxy.yaml
-cilium install --set kubeProxyReplacement=true
+cilium install --version "${CILIUM_VERSION:-1.20.1}" --set kubeProxyReplacement=true
 ```
 
 Confirm there is no kube-proxy DaemonSet and no Service iptables rules:

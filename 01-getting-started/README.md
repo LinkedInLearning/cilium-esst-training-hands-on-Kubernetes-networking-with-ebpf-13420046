@@ -8,13 +8,13 @@ Companion files for Chapter 1. Each step lists the command to run and the output
 
 Run:
 ```shell
-kind create cluster --config kind-cluster-config-no-cilium.yaml
+kind create cluster --config kind.yaml
 ```
 
 Expect output such as:
 ```
 Creating cluster "kind" ...
- ✓ Ensuring node image (kindest/node:v1.31.0)
+ ✓ Ensuring node image (kindest/node:v1.36.4)
  ✓ Preparing nodes
  ✓ Writing configuration
  ✓ Starting control-plane
@@ -26,7 +26,7 @@ Set kubectl context to "kind-kind"
 
 Run:
 ```shell
-cilium install
+cilium install --version "${CILIUM_VERSION:-1.20.1}"
 cilium status --wait
 ```
 
@@ -68,29 +68,75 @@ Expect output such as:
 <title>Welcome to nginx!</title>
 ```
 
-## 1.4 Secure your app with a network policy
+## 1.4 Secure your app with Cilium Network Policies
 
-Run:
+Tighten access to nginx step by step: L3 (identity), then L4 (port/protocol), then L7 (HTTP path).
+
+**L3, allow only the client by label.** Deploy a rogue client with no matching label, then apply the L3 policy:
+```shell
+kubectl apply -f rogue-client.yaml
+kubectl apply -f cnp-l3.yaml
+kubectl exec netshoot-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
+kubectl exec rogue-client  -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
+```
+
+Expect output such as (authorized client allowed, rogue client dropped):
+```
+200
+000
+```
+
+**L4, restrict to TCP port 80.** ICMP is no longer allowed, so ping is dropped:
 ```shell
 kubectl apply -f cnp-l3l4.yaml
-kubectl exec netshoot-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
+kubectl exec netshoot-client -- ping -c 3 $(kubectl get pod -l app=nginx -o jsonpath='{.items[0].status.podIP}')
 ```
 
-Expect output such as (the allowed client still reaches nginx on port 80):
+Expect output such as:
 ```
+3 packets transmitted, 0 received, 100% packet loss
+```
+
+**L7, allow only GET /index.html.** Other paths are denied by Cilium's Envoy proxy:
+```shell
+kubectl apply -f cnp-l7.yaml
+kubectl exec netshoot-client -- curl -s nginx-service/50x.html
+kubectl exec netshoot-client -- curl -s -o /dev/null -w "%{http_code}\n" nginx-service/index.html
+```
+
+Expect output such as (the non-allowed path returns Envoy's denial, the allowed path returns 200):
+```
+Access denied
 200
 ```
 
+`curl -v nginx-service/50x.html` shows the denial comes from `server: envoy` with `HTTP/1.1 403 Forbidden`.
+
 ## 1.5 Monitor your app with Hubble
 
-Run:
+Enable Hubble and confirm it is healthy:
 ```shell
 cilium hubble enable
+cilium status --wait
+```
+
+Expect output such as:
+```
+Hubble Relay:       OK
+```
+
+Port-forward, then observe flows for the client:
+```shell
+cilium hubble port-forward &
 hubble observe --pod netshoot-client
 ```
 
 Expect output such as:
 ```
-Sep 14 09:50:01.123: default/netshoot-client -> default/nginx-deployment-... to-endpoint FORWARDED (TCP Flags: SYN)
-Sep 14 09:50:01.124: default/netshoot-client <- default/nginx-deployment-... to-endpoint FORWARDED (TCP Flags: SYN, ACK)
+default/netshoot-client -> default/nginx-deployment-xxxxxxxxx to-endpoint FORWARDED (TCP)
+```
+
+Filter to just dropped HTTP traffic:
+```shell
+hubble observe --verdict DROPPED --protocol http
 ```
