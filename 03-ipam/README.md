@@ -21,42 +21,50 @@ kind-worker2         [10.244.1.0/24]
 
 ## 3.4 Cluster Scope IPAM (the Cilium default)
 
-Run:
+Cluster Scope (a.k.a. cluster-pool) is the default: the Cilium **operator**, not Kubernetes, allocates a PodCIDR per node. Watch it in the operator logs:
 ```shell
-cilium config view | grep -i ipam
+kubectl -n kube-system logs deploy/cilium-operator | grep -iE "allocated .*cidr"
 ```
 
 Expect output such as:
 ```
-ipam                          cluster-pool
+msg="Allocated v4CIDR" nodeName=kind-worker
+msg="Allocated existing CIDRs" nodeName=kind-worker cidrs=10.244.2.0/24 allocated=true
+```
+
+Verify the per-node CIDRs on the CiliumNode objects:
+```shell
+kubectl get ciliumnodes -o custom-columns='NODE:.metadata.name,PODCIDRS:.spec.ipam.podCIDRs'
+```
+
+Expect output such as:
+```
+NODE                 PODCIDRS
+kind-control-plane   [10.244.0.0/24]
+kind-worker          [10.244.2.0/24]
+kind-worker2         [10.244.1.0/24]
 ```
 
 ## 3.5 Multi-pool IPAM
 
-Install Cilium in multi-pool mode, then create two extra pools:
+Multi-pool lets different tenants draw from different IP ranges. Cilium is installed in multi-pool mode (`multi-pool.yaml`). Create a namespace and a pool per tenant:
 ```shell
-cilium install --values multi-pool.yaml
+kubectl create ns acme
+kubectl create ns foobar
 kubectl apply -f acme-pool.yaml -f foobar-pool.yaml
-kubectl get ciliumpodippool
 ```
 
-Expect output such as:
-```
-NAME          AGE
-acme-pool     10s
-default       40s
-foobar-pool   10s
-```
-
-A pod requests a pool with the `ipam.cilium.io/ip-pool` annotation, and gets an IP from that pool's CIDR:
+Bind each namespace to its pool with an annotation, then deploy a pod in each:
 ```shell
-kubectl run acme-pod --image=nginx \
-  --overrides='{"metadata":{"annotations":{"ipam.cilium.io/ip-pool":"acme-pool"}}}'
-kubectl get pod acme-pod -o wide
+kubectl annotate ns acme   ipam.cilium.io/ip-pool=acme-pool
+kubectl annotate ns foobar ipam.cilium.io/ip-pool=foobar-pool
+kubectl -n acme   run client --image=nicolaka/netshoot -- sleep infinity
+kubectl -n foobar run client --image=nicolaka/netshoot -- sleep infinity
+kubectl get pods -A -o wide | grep -E 'acme|foobar'
 ```
 
-Expect output such as (IP from the acme pool `10.20.0.0/16`):
+Expect output such as (acme from `10.20.0.0/16`, foobar from `10.30.0.0/16`):
 ```
-NAME       READY   STATUS    IP          NODE
-acme-pod   1/1     Running   10.20.0.5   kind-worker
+acme     client   1/1   Running   10.20.0.5    kind-worker2
+foobar   client   1/1   Running   10.30.0.12   kind-worker2
 ```

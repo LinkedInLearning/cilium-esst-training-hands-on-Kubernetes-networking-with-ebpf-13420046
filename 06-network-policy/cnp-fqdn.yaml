@@ -1,0 +1,25 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: fqdn
+  namespace: default
+spec:
+  endpointSelector:
+    matchLabels:
+      app: netshoot-client
+  egress:
+    # Allow DNS to kube-dns so the DNS proxy can resolve and enforce names.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # Allow egress only to cilium.io.
+    - toFQDNs:
+        - matchName: "cilium.io"

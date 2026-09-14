@@ -4,51 +4,28 @@
 
 Companion files for Chapter 6. Each step lists the command to run and the output to expect. The full walkthrough is in the course videos.
 
-> These steps assume `nginx-deployment` and `netshoot-client` from Chapter 1 are running.
+> The hands-on **L3 -> L4 -> L7** network-policy demo is in Chapter 1 (features-first). This chapter covers policy **anatomy** and **FQDN** policies.
 
-## 6.1 Open by default
+## 6.2 Anatomy of a network policy
 
-Before any policy, every pod can reach the app. Deploy an extra, unauthorized client:
+`sample-knp.yaml` is the Kubernetes NetworkPolicy example from the Kubernetes docs (selects `role=db`, with ingress and egress rules). Read it next to a CiliumNetworkPolicy to see the differences:
+
+- KNP uses `podSelector`; a CNP uses `endpointSelector`.
+- A namespaced CNP applies only in its namespace; use `CiliumClusterwideNetworkPolicy` for cluster-wide rules.
+- **Default allow / default deny:** an endpoint with no policy allows all traffic; as soon as any policy selects it, unmatched traffic is denied, including DNS.
+- CNP adds `toEntities` (`cluster`, `world`, `kube-apiserver`, `ingress`) and, in Chapter 1, L7 and identity-based rules that KNP cannot express.
+
+## 6.5 FQDN policy: allow specific hostnames
+
+Allow `netshoot-client` egress only to `cilium.io`, enforced by the DNS proxy:
 ```shell
-kubectl apply -f rogue-client.yaml
-kubectl exec rogue-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
+kubectl apply -f cnp-fqdn.yaml
+kubectl exec netshoot-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" https://cilium.io
+kubectl exec netshoot-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" https://github.com
 ```
 
-Expect output such as:
-```
-200
-```
-
-## 6.3 L3 and L4 policies: identity and ports
-
-Allow only `netshoot-client` to reach nginx on TCP 80:
-```shell
-kubectl apply -f cnp-l3l4.yaml
-kubectl exec netshoot-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
-kubectl exec rogue-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
-```
-
-Expect output such as (authorized client allowed, rogue client dropped):
+Expect output such as (the allowed FQDN succeeds, everything else is denied):
 ```
 200
 000
 ```
-
-## 6.4 L7 policy: HTTP-aware enforcement
-
-Allow only `GET /index.html`:
-```shell
-kubectl apply -f cnp-l7.yaml
-kubectl exec netshoot-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service/index.html
-kubectl exec netshoot-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service/admin
-```
-
-Expect output such as (allowed path 200, everything else denied by the L7 proxy):
-```
-200
-403
-```
-
-## 6.5 FQDN policy: allow specific hostnames
-
-> Policy file `cnp-fqdn.yaml` to be added. Allows egress only to named hostnames via the DNS proxy.
