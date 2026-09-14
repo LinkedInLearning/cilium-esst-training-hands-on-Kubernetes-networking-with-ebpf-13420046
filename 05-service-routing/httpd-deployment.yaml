@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpd
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: httpd
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: httpd
+    spec:
+      containers:
+      - name: httpd
+        image: httpd
+        ports:
+        - containerPort: 80
