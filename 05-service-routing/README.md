@@ -8,14 +8,14 @@ Companion files for Chapter 5. Each step lists the command to run and the output
 
 Run:
 ```shell
-kubectl apply -f httpd-deployment.yaml -f httpd-service.yaml
-kubectl get svc httpd
+kubectl apply -f nginx-deployment.yaml
+kubectl get svc nginx-service
 ```
 
 Expect output such as:
 ```
-NAME    TYPE        CLUSTER-IP      PORT(S)   AGE
-httpd   ClusterIP   10.96.181.20    80/TCP    5s
+NAME            TYPE        CLUSTER-IP     PORT(S)   AGE
+nginx-service   ClusterIP   10.96.88.207   80/TCP    5s
 ```
 
 ## 5.2 kube-proxy: role and limitations
@@ -37,8 +37,8 @@ Create a cluster with no kube-proxy, install Cilium with kube-proxy replacement,
 ```shell
 kind create cluster --config kind-no-kube-proxy.yaml
 cilium install --version "${CILIUM_VERSION:-1.20.1}" --set kubeProxyReplacement=true
-kubectl apply -f httpd-deployment.yaml
-for i in $(seq 1 100); do kubectl expose deployment httpd --port=80 --name="httpd-$i"; done
+kubectl apply -f nginx-deployment.yaml
+for i in $(seq 1 100); do kubectl expose deployment nginx-deployment --port=80 --name="nginx-$i"; done
 ```
 
 Confirm no Service iptables rules remain, they live in the eBPF service map instead:
