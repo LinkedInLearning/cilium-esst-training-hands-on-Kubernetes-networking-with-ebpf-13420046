@@ -21,7 +21,7 @@ esac
 : "${KIND_VERSION:=v0.33.0}"
 : "${CILIUM_CLI_VERSION:=v0.20.0}"
 : "${HUBBLE_VERSION:=v1.19.4}"
-: "${CILIUM_VERSION:=1.20.1}"
+: "${CILIUM_VERSION:=1.20.2}"
 
 # --- kubectl ---
 if ! command -v kubectl >/dev/null 2>&1; then

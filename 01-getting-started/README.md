@@ -26,7 +26,7 @@ Set kubectl context to "kind-kind"
 
 Run:
 ```shell
-cilium install --version "${CILIUM_VERSION:-1.20.1}"
+cilium install --version "${CILIUM_VERSION:-1.20.2}"
 cilium status --wait
 ```
 

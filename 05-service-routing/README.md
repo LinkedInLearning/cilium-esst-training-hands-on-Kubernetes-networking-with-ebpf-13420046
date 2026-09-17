@@ -36,7 +36,7 @@ Expect output such as:
 Create a cluster with no kube-proxy, install Cilium with kube-proxy replacement, then create 100 services:
 ```shell
 kind create cluster --config kind-no-kube-proxy.yaml
-cilium install --version "${CILIUM_VERSION:-1.20.1}" --set kubeProxyReplacement=true
+cilium install --version "${CILIUM_VERSION:-1.20.2}" --set kubeProxyReplacement=true
 kubectl apply -f nginx-deployment.yaml
 for i in $(seq 1 100); do kubectl expose deployment nginx-deployment --port=80 --name="nginx-$i"; done
 ```
@@ -60,7 +60,7 @@ Gateway API needs its CRDs first (Cilium does **not** install these), then the f
 ```shell
 kubectl apply --server-side -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.6.1/config/crd/standard/gateway.networking.k8s.io_gateways.yaml
 # plus gatewayclasses, httproutes, referencegrants, grpcroutes, backendtlspolicies, tlsroutes
-helm upgrade cilium cilium/cilium --version "${CILIUM_VERSION:-1.20.1}" --namespace kube-system \
+helm upgrade cilium cilium/cilium --version "${CILIUM_VERSION:-1.20.2}" --namespace kube-system \
   --reuse-values --set kubeProxyReplacement=true --set gatewayAPI.enabled=true
 kubectl -n kube-system rollout restart deployment/cilium-operator ds/cilium
 ```

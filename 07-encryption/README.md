@@ -9,7 +9,7 @@ Companion files for Chapter 7. Each step lists the command to run and the output
 Run:
 ```shell
 kind create cluster --config kind.yaml
-cilium install --version "${CILIUM_VERSION:-1.20.1}"
+cilium install --version "${CILIUM_VERSION:-1.20.2}"
 cilium status --wait
 ```
 
