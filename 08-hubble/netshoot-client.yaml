@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netshoot-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: netshoot-client
+  template:
+    metadata:
+      labels:
+        app: netshoot-client
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: nginx
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: netshoot
+          image: nicolaka/netshoot
+          command: ["sleep", "infinity"]

@@ -1,0 +1,19 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.36.4
+  - role: worker
+    image: kindest/node:v1.36.4
+  - role: worker
+    image: kindest/node:v1.36.4
+networking:
+  # Cilium provides the CNI, so disable kind's default (kindnet).
+  disableDefaultCNI: true
+  # No kube-proxy: Cilium replaces it (kube-proxy replacement).
+  kubeProxyMode: "none"
+  # Dual-stack, with explicit v4+v6 pod and service ranges so both pods
+  # AND Services get IPv4 and IPv6 addresses to filter on in Hubble.
+  ipFamily: dual
+  podSubnet: "10.244.0.0/16,fd00:10:244::/56"
+  serviceSubnet: "10.96.0.0/16,fd00:10:96::/112"

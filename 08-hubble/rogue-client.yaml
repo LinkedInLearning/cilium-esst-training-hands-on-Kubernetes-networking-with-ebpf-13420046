@@ -1,0 +1,11 @@
+# An unauthorized client: no policy allows it to reach nginx, so its traffic
+# is dropped and shows up as a DROPPED verdict in Hubble.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rogue-client
+spec:
+  containers:
+    - name: netshoot
+      image: nicolaka/netshoot
+      command: ["sleep", "infinity"]
