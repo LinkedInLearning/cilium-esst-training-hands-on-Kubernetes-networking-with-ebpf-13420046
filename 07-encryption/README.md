@@ -76,6 +76,7 @@ Encryption: Wireguard (3/3 nodes)
 
 Capture on the kind bridge, filtering for WireGuard (UDP 51871):
 ```shell
+BRIDGE="br-$(docker network inspect kind -f '{{.Id}}' | cut -c1-12)"
 docker run --rm --network host --privileged nicolaka/netshoot tcpdump -ni "$BRIDGE" udp and port 51871
 ```
 
