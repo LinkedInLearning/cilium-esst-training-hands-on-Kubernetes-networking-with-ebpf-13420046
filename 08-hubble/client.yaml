@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: netshoot-client
+  name: client
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: netshoot-client
+      app: client
   template:
     metadata:
       labels:
-        app: netshoot-client
+        app: client
     spec:
       affinity:
         podAntiAffinity:

@@ -58,9 +58,9 @@ kubectl -n kube-system port-forward service/hubble-relay 4245:80 &
 Run:
 ```shell
 kubectl apply -f nginx-deployment.yaml
-kubectl apply -f netshoot-client.yaml
+kubectl apply -f client.yaml
 kubectl apply -f rogue-client.yaml
-kubectl wait --for=condition=Available deployment/nginx-deployment deployment/netshoot-client
+kubectl wait --for=condition=Available deployment/nginx-deployment deployment/client
 kubectl apply -f cnp-l7.yaml
 kubectl apply -f cnp-fqdn.yaml
 ```
@@ -74,7 +74,7 @@ Expect output such as:
 ```
 NAME                                READY   STATUS    IP                                    NODE
 nginx-deployment-6d4c...            1/1     Running   10.244.1.42                           kind-worker
-netshoot-client-7f8b...             1/1     Running   10.244.2.17                           kind-worker2
+client-7f8b...             1/1     Running   10.244.2.17                           kind-worker2
 ```
 ```shell
 kubectl get pod -l app=nginx -o jsonpath='{.items[0].status.podIPs}'
@@ -87,7 +87,7 @@ Expect output such as:
 
 Generate a mix of allowed, denied, HTTP and DNS traffic:
 ```shell
-CLIENT=$(kubectl get pod -l app=netshoot-client -o name)
+CLIENT=$(kubectl get pod -l app=client -o name)
 kubectl exec "$CLIENT" -- curl -s -o /dev/null nginx-service/index.html
 kubectl exec "$CLIENT" -- curl -s -o /dev/null nginx-service/50x.html
 kubectl exec "$CLIENT" -- curl -s -o /dev/null https://cilium.io
@@ -112,7 +112,7 @@ hubble observe --to-label app=nginx
 
 Expect output such as:
 ```
-default/netshoot-client-7f8b:41000 (ID:1234) -> default/nginx-deployment-6d4c:80 (ID:5678) to-overlay FORWARDED (TCP Flags: SYN)
+default/client-7f8b:41000 (ID:1234) -> default/nginx-deployment-6d4c:80 (ID:5678) to-overlay FORWARDED (TCP Flags: SYN)
 default/rogue-client:40012 (ID:1111) <> default/nginx-deployment-6d4c:80 (ID:5678) Policy denied DROPPED (TCP Flags: SYN)
 ```
 
@@ -129,8 +129,8 @@ hubble observe --protocol http --http-method GET
 
 Expect output such as:
 ```
-default/netshoot-client-7f8b:41000 (ID:1234) -> default/nginx-deployment-6d4c:80 (ID:5678) http-request FORWARDED (HTTP/1.1 GET http://nginx-service/index.html)
-default/netshoot-client-7f8b:41002 (ID:1234) -> default/nginx-deployment-6d4c:80 (ID:5678) http-request DROPPED (HTTP/1.1 GET http://nginx-service/50x.html)
+default/client-7f8b:41000 (ID:1234) -> default/nginx-deployment-6d4c:80 (ID:5678) http-request FORWARDED (HTTP/1.1 GET http://nginx-service/index.html)
+default/client-7f8b:41002 (ID:1234) -> default/nginx-deployment-6d4c:80 (ID:5678) http-request DROPPED (HTTP/1.1 GET http://nginx-service/50x.html)
 ```
 
 DNS requests (the FQDN policy at work):
@@ -140,7 +140,7 @@ hubble observe --protocol dns
 
 Expect output such as:
 ```
-default/netshoot-client-7f8b:44100 (ID:1234) -> kube-system/coredns-abcd:53 (ID:104) dns-request FORWARDED (DNS Query cilium.io. A)
+default/client-7f8b:44100 (ID:1234) -> kube-system/coredns-abcd:53 (ID:104) dns-request FORWARDED (DNS Query cilium.io. A)
 ```
 
 Just the overlay trace points (inter-node, encapsulated):
@@ -150,16 +150,23 @@ hubble observe --type trace:to-overlay
 
 Filter on just the IPv6 flows:
 ```shell
-hubble observe --ipv6 --from-pod netshoot-client
+hubble observe --ipv6 --from-pod client
 ```
 
 Follow live, limited to the client:
 ```shell
-hubble observe --from-label app=netshoot-client -f
+hubble observe --from-label app=client -f
 ```
 
 Each flow as readable key-value pairs, then the full detail as JSON:
 ```shell
 hubble observe --to-label app=nginx --last 1 -o dict
 hubble observe --to-label app=nginx --last 1 -o json
+```
+
+## Clean up
+
+Delete the cluster when you're done:
+```shell
+kind delete cluster
 ```

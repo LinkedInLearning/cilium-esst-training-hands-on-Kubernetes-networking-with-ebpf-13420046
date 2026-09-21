@@ -20,8 +20,8 @@ Companion files for Chapter 6. Each step lists the command to run and the output
 **Require a specific header.** Only allow requests carrying `X-Custom-Header: cilium-rocks`:
 ```shell
 kubectl apply -f cnp-l7-headers.yaml
-kubectl exec netshoot-client -- curl -s -o /dev/null -w "%{http_code}\n" nginx-service
-kubectl exec netshoot-client -- curl -s -o /dev/null -w "%{http_code}\n" -H "X-Custom-Header: cilium-rocks" nginx-service
+kubectl exec client -- curl -s -o /dev/null -w "%{http_code}\n" nginx-service
+kubectl exec client -- curl -s -o /dev/null -w "%{http_code}\n" -H "X-Custom-Header: cilium-rocks" nginx-service
 ```
 
 Expect output such as (missing header denied, correct header allowed):
@@ -33,8 +33,8 @@ Expect output such as (missing header denied, correct header allowed):
 **Match on the hostname.** Only allow requests whose Host header is `nginx.isovalent.com`:
 ```shell
 kubectl apply -f cnp-l7-host.yaml
-kubectl exec netshoot-client -- curl -s -o /dev/null -w "%{http_code}\n" -H "Host: evil.com" nginx-service
-kubectl exec netshoot-client -- curl -s -o /dev/null -w "%{http_code}\n" -H "Host: nginx.isovalent.com" nginx-service
+kubectl exec client -- curl -s -o /dev/null -w "%{http_code}\n" -H "Host: evil.com" nginx-service
+kubectl exec client -- curl -s -o /dev/null -w "%{http_code}\n" -H "Host: nginx.isovalent.com" nginx-service
 ```
 
 Expect output such as (wrong host denied, matching host allowed):
@@ -47,8 +47,8 @@ Expect output such as (wrong host denied, matching host allowed):
 
 ```shell
 kubectl apply -f cnp-dns.yaml
-kubectl exec netshoot-client -- curl -sI https://cilium.io. | head -n1
-kubectl exec netshoot-client -- curl -s https://example.com
+kubectl exec client -- curl -sI https://cilium.io. | head -n1
+kubectl exec client -- curl -s https://example.com
 ```
 
 Expect output such as (the allowed name resolves and connects, the blocked name never resolves):
@@ -64,11 +64,11 @@ kubectl delete ciliumnetworkpolicy dns
 
 ## 6.6 FQDN policy: allow specific hostnames
 
-Allow `netshoot-client` egress only to `cilium.io`, enforced by the DNS proxy:
+Allow `client` egress only to `cilium.io`, enforced by the DNS proxy:
 ```shell
 kubectl apply -f cnp-fqdn.yaml
-kubectl exec netshoot-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" https://cilium.io
-kubectl exec netshoot-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" https://github.com
+kubectl exec client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" https://cilium.io
+kubectl exec client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" https://github.com
 ```
 
 Expect output such as (the allowed FQDN succeeds, everything else is denied):

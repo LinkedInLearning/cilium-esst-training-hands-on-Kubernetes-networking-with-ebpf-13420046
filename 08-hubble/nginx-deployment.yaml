@@ -19,7 +19,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
                 matchLabels:
-                  app: netshoot-client
+                  app: client
               topologyKey: kubernetes.io/hostname
       containers:
         - name: nginx

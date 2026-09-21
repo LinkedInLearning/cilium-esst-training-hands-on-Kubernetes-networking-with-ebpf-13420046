@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: netshoot-client
+  name: client
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: netshoot-client
+      app: client
   template:
     metadata:
       labels:
-        app: netshoot-client
+        app: client
     spec:
       # Force the client onto a different node than nginx so the traffic
       # crosses the wire between nodes (where encryption applies).
@@ -45,7 +45,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
                 matchLabels:
-                  app: netshoot-client
+                  app: client
               topologyKey: kubernetes.io/hostname
       containers:
         - name: nginx

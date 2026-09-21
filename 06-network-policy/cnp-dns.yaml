@@ -6,7 +6,7 @@ metadata:
 spec:
   endpointSelector:
     matchLabels:
-      app: netshoot-client
+      app: client
   egress:
     # Only allow DNS queries for cilium.io, proxied and enforced via kube-dns.
     - toEndpoints:

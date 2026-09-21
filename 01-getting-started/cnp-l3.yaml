@@ -10,4 +10,4 @@ spec:
   ingress:
     - fromEndpoints:
         - matchLabels:
-            app: netshoot-client
+            app: client

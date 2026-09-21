@@ -47,20 +47,20 @@ Containers: cilium   Running: 3
 
 Run:
 ```shell
-kubectl apply -f nginx-deployment.yaml -f netshoot-client.yaml
+kubectl apply -f nginx-deployment.yaml -f client.yaml
 kubectl get pods -o wide
 ```
 
 Expect output such as:
 ```
 NAME                                READY   STATUS    RESTARTS   AGE   IP             NODE
-netshoot-client                     1/1     Running   0          20s   10.244.1.183   kind-worker2
+client                     1/1     Running   0          20s   10.244.1.183   kind-worker2
 nginx-deployment-74fb5f7cb9-lkzt9   1/1     Running   0          20s   10.244.2.236   kind-worker
 ```
 
 Run:
 ```shell
-kubectl exec netshoot-client -- curl -s nginx-service | grep -o "<title>.*</title>"
+kubectl exec client -- curl -s nginx-service | grep -o "<title>.*</title>"
 ```
 
 Expect output such as:
@@ -76,7 +76,7 @@ Tighten access to nginx step by step: L3 (identity), then L4 (port/protocol), th
 ```shell
 kubectl apply -f rogue-client.yaml
 kubectl apply -f cnp-l3.yaml
-kubectl exec netshoot-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
+kubectl exec client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
 kubectl exec rogue-client  -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
 ```
 
@@ -89,7 +89,7 @@ Expect output such as (authorized client allowed, rogue client dropped):
 **L4, restrict to TCP port 80.** ICMP is no longer allowed, so ping is dropped:
 ```shell
 kubectl apply -f cnp-l3l4.yaml
-kubectl exec netshoot-client -- ping -c 3 $(kubectl get pod -l app=nginx -o jsonpath='{.items[0].status.podIP}')
+kubectl exec client -- ping -c 3 $(kubectl get pod -l app=nginx -o jsonpath='{.items[0].status.podIP}')
 ```
 
 Expect output such as:
@@ -100,8 +100,8 @@ Expect output such as:
 **L7, allow only GET /index.html.** Other paths are denied by Cilium's Envoy proxy:
 ```shell
 kubectl apply -f cnp-l7.yaml
-kubectl exec netshoot-client -- curl -s nginx-service/50x.html
-kubectl exec netshoot-client -- curl -s -o /dev/null -w "%{http_code}\n" nginx-service/index.html
+kubectl exec client -- curl -s nginx-service/50x.html
+kubectl exec client -- curl -s -o /dev/null -w "%{http_code}\n" nginx-service/index.html
 ```
 
 Expect output such as (the non-allowed path returns Envoy's denial, the allowed path returns 200):
@@ -128,15 +128,22 @@ Hubble Relay:       OK
 Port-forward, then observe flows for the client:
 ```shell
 cilium hubble port-forward &
-hubble observe --pod netshoot-client
+hubble observe --pod client
 ```
 
 Expect output such as:
 ```
-default/netshoot-client -> default/nginx-deployment-xxxxxxxxx to-endpoint FORWARDED (TCP)
+default/client -> default/nginx-deployment-xxxxxxxxx to-endpoint FORWARDED (TCP)
 ```
 
 Filter to just dropped HTTP traffic:
 ```shell
 hubble observe --verdict DROPPED --protocol http
+```
+
+## Clean up
+
+Delete the cluster when you're done:
+```shell
+kind delete cluster
 ```

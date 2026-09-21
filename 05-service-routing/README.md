@@ -78,3 +78,10 @@ NAME            CLASS    ADDRESS          PROGRAMMED   AGE
 nginx-gateway   cilium   172.18.255.200   True         20s
 <title>Welcome to nginx!</title>
 ```
+
+## Clean up
+
+Delete the cluster when you're done:
+```shell
+kind delete cluster
+```
