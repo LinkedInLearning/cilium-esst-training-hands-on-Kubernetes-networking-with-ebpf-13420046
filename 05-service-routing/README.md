@@ -62,9 +62,15 @@ ID    Frontend               Service Type   Backend
 
 > Routes to `nginx-service` from Chapter 1.
 
-Gateway API needs its CRDs first (Cilium does **not** install these), then the feature enabled via Helm with `--reuse-values`. The experimental channel installs every CRD Cilium's Gateway API support uses (Gateway, HTTPRoute, ReferenceGrant, GRPCRoute, TLSRoute, and more):
+Gateway API needs its CRDs first (Cilium does **not** install these), then the feature enabled via Helm with `--reuse-values`. Install the CRD set Cilium's Gateway API support uses (matching the Cilium docs):
 ```shell
-kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/experimental-install.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.6.1/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.6.1/config/crd/standard/gateway.networking.k8s.io_gateways.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.6.1/config/crd/standard/gateway.networking.k8s.io_httproutes.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.6.1/config/crd/standard/gateway.networking.k8s.io_referencegrants.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.6.1/config/crd/standard/gateway.networking.k8s.io_grpcroutes.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.6.1/config/crd/standard/gateway.networking.k8s.io_backendtlspolicies.yaml
+kubectl apply --server-side -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.6.1/config/crd/standard/gateway.networking.k8s.io_tlsroutes.yaml
 helm upgrade cilium cilium/cilium --version "${CILIUM_VERSION:-1.20.2}" --namespace kube-system \
   --reuse-values --set kubeProxyReplacement=true --set gatewayAPI.enabled=true
 kubectl -n kube-system rollout restart deployment/cilium-operator ds/cilium
