@@ -1,7 +1,5 @@
 # Chapter 6: Network Policy
 
-> ⚠️ **PLACEHOLDER** — the "Expect output" blocks below are illustrative samples and will be replaced with real captured output before release.
-
 Companion files for Chapter 6. Each step lists the command to run and the output to expect. The full walkthrough is in the course videos.
 
 > The hands-on **L3 -> L4 -> L7** network-policy demo is in Chapter 1 (features-first). This chapter covers policy **anatomy**, extra L7 matches (**headers**, **hostnames**, **DNS**), and **FQDN** policies.

@@ -1,8 +1,5 @@
 # Chapter 8: Observability with Hubble
 
-> ⚠️ **PLACEHOLDER** — the "Expect output" blocks below are illustrative samples
-and will be replaced with real captured output before release.
-
 Companion files for Chapter 8. Each step lists the command to run and the output
 to expect. The full walkthrough is in the course videos.
 
@@ -72,9 +69,10 @@ kubectl get pods -o wide
 
 Expect output such as:
 ```
-NAME                                READY   STATUS    IP                                    NODE
-nginx-deployment-6d4c...            1/1     Running   10.244.1.42                           kind-worker
-client-7f8b...             1/1     Running   10.244.2.17                           kind-worker2
+NAME                               READY   STATUS    IP             NODE
+client-6b47885cdd-5qzq2            1/1     Running   10.244.1.254   kind-worker
+nginx-deployment-596fc5b99-4p8ll   1/1     Running   10.244.2.55    kind-worker2
+rogue-client                       1/1     Running   10.244.2.116   kind-worker2
 ```
 ```shell
 kubectl get pod -l app=nginx -o jsonpath='{.items[0].status.podIPs}'
@@ -82,7 +80,7 @@ kubectl get pod -l app=nginx -o jsonpath='{.items[0].status.podIPs}'
 
 Expect output such as:
 ```
-[{"ip":"10.244.1.42"},{"ip":"fd00:10:244:1::2a"}]
+[{"ip":"10.244.2.55"},{"ip":"fd00:10:244:2::88c4"}]
 ```
 
 Generate a mix of allowed, denied, HTTP and DNS traffic:
@@ -112,8 +110,8 @@ hubble observe --to-label app=nginx
 
 Expect output such as:
 ```
-default/client-7f8b:41000 (ID:1234) -> default/nginx-deployment-6d4c:80 (ID:5678) to-overlay FORWARDED (TCP Flags: SYN)
-default/rogue-client:40012 (ID:1111) <> default/nginx-deployment-6d4c:80 (ID:5678) Policy denied DROPPED (TCP Flags: SYN)
+default/client-6b47885cdd-5qzq2:51836 (ID:24390) -> default/nginx-deployment-596fc5b99-4p8ll:80 (ID:32885) to-overlay FORWARDED (TCP Flags: SYN)
+default/client-6b47885cdd-5qzq2:51836 (ID:24390) -> default/nginx-deployment-596fc5b99-4p8ll:80 (ID:32885) http-request FORWARDED (HTTP/1.1 GET http://nginx-service/index.html)
 ```
 
 Only the dropped flows:
@@ -129,8 +127,8 @@ hubble observe --protocol http --http-method GET
 
 Expect output such as:
 ```
-default/client-7f8b:41000 (ID:1234) -> default/nginx-deployment-6d4c:80 (ID:5678) http-request FORWARDED (HTTP/1.1 GET http://nginx-service/index.html)
-default/client-7f8b:41002 (ID:1234) -> default/nginx-deployment-6d4c:80 (ID:5678) http-request DROPPED (HTTP/1.1 GET http://nginx-service/50x.html)
+default/client-6b47885cdd-5qzq2:51820 (ID:24390) -> default/nginx-deployment-596fc5b99-4p8ll:80 (ID:32885) http-request FORWARDED (HTTP/1.1 GET http://nginx-service/index.html)
+default/client-6b47885cdd-5qzq2:51822 (ID:24390) -> default/nginx-deployment-596fc5b99-4p8ll:80 (ID:32885) http-request DROPPED (HTTP/1.1 GET http://nginx-service/50x.html)
 ```
 
 DNS requests (the FQDN policy at work):
@@ -140,7 +138,8 @@ hubble observe --protocol dns
 
 Expect output such as:
 ```
-default/client-7f8b:44100 (ID:1234) -> kube-system/coredns-abcd:53 (ID:104) dns-request FORWARDED (DNS Query cilium.io. A)
+default/client-6b47885cdd-5qzq2:56211 (ID:24390) -> kube-system/coredns-589f44dc88-pjqrn:53 (ID:7836) dns-request proxy FORWARDED (DNS Query cilium.io. A)
+default/client-6b47885cdd-5qzq2:56211 (ID:24390) <- kube-system/coredns-589f44dc88-pjqrn:53 (ID:7836) dns-response proxy FORWARDED (DNS Answer "104.198.14.52" TTL: 30 (Proxy cilium.io. A))
 ```
 
 Just the overlay trace points (inter-node, encapsulated):

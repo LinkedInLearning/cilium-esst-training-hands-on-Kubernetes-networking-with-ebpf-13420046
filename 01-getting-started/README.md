@@ -1,7 +1,5 @@
 # Chapter 1: Getting Started with Cilium
 
-> ⚠️ **PLACEHOLDER** — the "Expect output" blocks below are illustrative samples and will be replaced with real captured output before release.
-
 Companion files for Chapter 1. Each step lists the command to run and the output to expect. The full walkthrough is in the course videos.
 
 ## 1.1 Set up your Kubernetes lab environment
@@ -14,11 +12,12 @@ kind create cluster --config kind.yaml
 Expect output such as:
 ```
 Creating cluster "kind" ...
- ✓ Ensuring node image (kindest/node:v1.36.4)
- ✓ Preparing nodes
- ✓ Writing configuration
- ✓ Starting control-plane
- ✓ Installing StorageClass
+ ✓ Ensuring node image (kindest/node:v1.36.4) 🖼
+ ✓ Preparing nodes 📦 📦 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing StorageClass 💾
+ ✓ Joining worker nodes 🚜
 Set kubectl context to "kind-kind"
 ```
 
@@ -39,8 +38,14 @@ Expect output such as:
  \__/¯¯\__/    Hubble Relay:       disabled
     \__/       ClusterMesh:        disabled
 
-DaemonSet   cilium   Desired: 3, Ready: 3/3, Available: 3/3
-Containers: cilium   Running: 3
+DaemonSet              cilium             Desired: 3, Ready: 3/3, Available: 3/3
+DaemonSet              cilium-envoy       Desired: 3, Ready: 3/3, Available: 3/3
+Deployment             cilium-operator    Desired: 1, Ready: 1/1, Available: 1/1
+Containers:            cilium             Running: 3
+                       cilium-envoy       Running: 3
+                       cilium-operator    Running: 1
+Cluster Pods:          3/3 managed by Cilium
+Helm chart version:    1.20.2
 ```
 
 ## 1.3 Deploy a sample application
@@ -54,8 +59,8 @@ kubectl get pods -o wide
 Expect output such as:
 ```
 NAME                                READY   STATUS    RESTARTS   AGE   IP             NODE
-client                     1/1     Running   0          20s   10.244.1.183   kind-worker2
-nginx-deployment-74fb5f7cb9-lkzt9   1/1     Running   0          20s   10.244.2.236   kind-worker
+client                              1/1     Running   0          31s   10.244.1.60    kind-worker2
+nginx-deployment-58669cf4d6-wfcgt   1/1     Running   0          31s   10.244.1.233   kind-worker2
 ```
 
 Run:
@@ -133,12 +138,19 @@ hubble observe --pod client
 
 Expect output such as:
 ```
-default/client -> default/nginx-deployment-xxxxxxxxx to-endpoint FORWARDED (TCP)
+default/client:53548 (ID:2587) -> default/nginx-deployment-58669cf4d6-wfcgt:80 (ID:9771) to-proxy FORWARDED (TCP Flags: SYN)
+default/client:53548 (ID:2587) -> default/nginx-deployment-58669cf4d6-wfcgt:80 (ID:9771) http-request DROPPED (HTTP/1.1 GET http://nginx-service/50x.html)
+default/client:53548 (ID:2587) <- default/nginx-deployment-58669cf4d6-wfcgt:80 (ID:9771) http-response FORWARDED (HTTP/1.1 403 0ms (GET http://nginx-service/50x.html))
 ```
 
 Filter to just dropped HTTP traffic:
 ```shell
 hubble observe --verdict DROPPED --protocol http
+```
+
+Expect output such as:
+```
+default/client:53548 (ID:2587) -> default/nginx-deployment-58669cf4d6-wfcgt:80 (ID:9771) http-request DROPPED (HTTP/1.1 GET http://nginx-service/50x.html)
 ```
 
 ## Clean up

@@ -1,7 +1,5 @@
 # Chapter 4: Datapath
 
-> ⚠️ **PLACEHOLDER** — the "Expect output" blocks below are illustrative samples and will be replaced with real captured output before release.
-
 Companion files for Chapter 4. Each step lists the command to run and the output to expect. The full walkthrough is in the course videos.
 
 ## Setup
@@ -23,9 +21,9 @@ kubectl get pods -o wide
 
 Expect output such as (both on `kind-worker`):
 ```
-NAME    READY   STATUS    IP            NODE
-pod-a   1/1     Running   10.244.2.10   kind-worker
-pod-b   1/1     Running   10.244.2.11   kind-worker
+NAME    READY   STATUS    IP             NODE
+pod-a   1/1     Running   10.244.2.65    kind-worker
+pod-b   1/1     Running   10.244.2.137   kind-worker
 ```
 
 Ping pod-b from pod-a:
@@ -35,7 +33,8 @@ kubectl exec pod-a -- ping -c 3 $(kubectl get pod pod-b -o jsonpath='{.status.po
 
 Expect output such as:
 ```
-3 packets transmitted, 3 packets received, 0% packet loss
+3 packets transmitted, 3 received, 0% packet loss, time 2037ms
+rtt min/avg/max/mdev = 0.078/0.158/0.269/0.080 ms
 ```
 
 ## 4.2 Internode connectivity: native routing vs encapsulation
@@ -47,8 +46,8 @@ cilium config view | grep -E 'routing-mode|tunnel-protocol'
 
 Expect output such as (this course uses VXLAN encapsulation):
 ```
-routing-mode       tunnel
-tunnel-protocol    vxlan
+routing-mode        tunnel
+tunnel-protocol     vxlan
 ```
 
 ## Clean up

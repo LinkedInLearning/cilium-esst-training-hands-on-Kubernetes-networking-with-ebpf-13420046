@@ -1,15 +1,13 @@
 # Chapter 3: IP Address Management
 
-> ⚠️ **PLACEHOLDER** — the "Expect output" blocks below are illustrative samples and will be replaced with real captured output before release.
-
 Companion files for Chapter 3. Each step lists the command to run and the output to expect. The full walkthrough is in the course videos.
 
 ## Setup
 
-Create a cluster and install Cilium with the default Cluster Scope (cluster-pool) IPAM:
+Create a cluster and install Cilium with Cluster Scope (cluster-pool) IPAM. Cluster Scope is Cilium's Helm default, but on kind the Cilium CLI autodetects Kubernetes-host IPAM, so we ask for it explicitly:
 ```shell
 kind create cluster --config kind.yaml
-cilium install --version "${CILIUM_VERSION:-1.20.2}"
+cilium install --version "${CILIUM_VERSION:-1.20.2}" --set ipam.mode=cluster-pool
 cilium status --wait
 ```
 
@@ -23,22 +21,21 @@ kubectl get ciliumnodes -o custom-columns='NODE:.metadata.name,PODCIDRS:.spec.ip
 Expect output such as:
 ```
 NODE                 PODCIDRS
-kind-control-plane   [10.244.0.0/24]
-kind-worker          [10.244.2.0/24]
-kind-worker2         [10.244.1.0/24]
+kind-control-plane   [10.0.2.0/24]
+kind-worker          [10.0.0.0/24]
+kind-worker2         [10.0.1.0/24]
 ```
 
 ## 3.4 Cluster Scope IPAM (the Cilium default)
 
-Cluster Scope (a.k.a. cluster-pool) is the default: the Cilium **operator**, not Kubernetes, allocates a PodCIDR per node. Watch it in the operator logs:
+Cluster Scope (a.k.a. cluster-pool) is the default: the Cilium **operator**, not Kubernetes, allocates a PodCIDR per node from a large pool (`10.0.0.0/8` by default). Watch the operator start its allocator:
 ```shell
-kubectl -n kube-system logs deploy/cilium-operator | grep -iE "allocated .*cidr"
+kubectl -n kube-system logs deploy/cilium-operator | grep -i "ClusterPool IP allocator"
 ```
 
 Expect output such as:
 ```
-msg="Allocated v4CIDR" nodeName=kind-worker
-msg="Allocated existing CIDRs" nodeName=kind-worker cidrs=10.244.2.0/24 allocated=true
+level=info msg="Starting ClusterPool IP allocator" subsys=ipam-allocator-clusterpool ipv4CIDRs=[10.0.0.0/8] ipv6CIDRs=[]
 ```
 
 Verify the per-node CIDRs on the CiliumNode objects:
@@ -49,9 +46,9 @@ kubectl get ciliumnodes -o custom-columns='NODE:.metadata.name,PODCIDRS:.spec.ip
 Expect output such as:
 ```
 NODE                 PODCIDRS
-kind-control-plane   [10.244.0.0/24]
-kind-worker          [10.244.2.0/24]
-kind-worker2         [10.244.1.0/24]
+kind-control-plane   [10.0.2.0/24]
+kind-worker          [10.0.0.0/24]
+kind-worker2         [10.0.1.0/24]
 ```
 
 ## 3.5 Multi-pool IPAM
@@ -83,8 +80,8 @@ kubectl get pods -A -o wide | grep -E 'acme|foobar'
 
 Expect output such as (acme from `10.20.0.0/16`, foobar from `10.30.0.0/16`):
 ```
-acme     client   1/1   Running   10.20.0.5    kind-worker2
-foobar   client   1/1   Running   10.30.0.12   kind-worker2
+acme     client   1/1   Running   10.20.0.2    kind-worker2
+foobar   client   1/1   Running   10.30.0.27   kind-worker
 ```
 
 ## Clean up
