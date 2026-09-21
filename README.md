@@ -1,36 +1,45 @@
 # Cilium Essential Training: Hands-on Kubernetes Networking with eBPF
 This is the repository for the LinkedIn Learning course `Cilium Essential Training: Hands-on Kubernetes Networking with eBPF`. The full course is available from [LinkedIn Learning][lil-course-url].
 
-![course-name-alt-text][lil-thumbnail-url] 
+![course-name-alt-text][lil-thumbnail-url]
 
-_See the readme file in the main branch for updated instructions and information._
-## Instructions
-This repository has branches for each of the videos in the course. You can use the branch pop up menu in github to switch to a specific branch and take a look at the course at that stage, or you can add `/tree/BRANCH_NAME` to the URL to go to the branch you want to access.
+## About these exercise files
 
-## Branches
-The branches are structured to correspond to the videos in the course. The naming convention is `CHAPTER#_MOVIE#`. As an example, the branch named `02_03` corresponds to the second chapter and the third video in that chapter. 
-Some branches will have a beginning and an end state. These are marked with the letters `b` for "beginning" and `e` for "end". The `b` branch contains the code as it is at the beginning of the movie. The `e` branch contains the code as it is at the end of the movie. The `main` branch holds the final state of the code when in the course.
+These are the companion files for the course. Unlike some LinkedIn Learning courses, this repository is organised **one folder per chapter** rather than branch-per-video. Each chapter folder is self-contained: it ships the manifests it needs and a `README.md` you can follow from top to bottom.
 
-When switching from one exercise files branch to the next after making changes to the files, you may get a message like this:
+## How to use it
 
-    error: Your local changes to the following files would be overwritten by checkout:        [files]
-    Please commit your changes or stash them before you switch branches.
-    Aborting
+Pick a chapter, change into its folder, and follow its `README.md`:
+```shell
+cd 01-getting-started
+```
 
-To resolve this issue:
-	
-    Add changes to git using this command: git add .
-	Commit changes using this command: git commit -m "some message"
+Every chapter's README opens with a **Setup** (create a kind cluster and install Cilium) and ends with a **Clean up** (delete the cluster), so you can start any chapter independently and tear it down when you're done.
 
-## Installing
-1. To use these exercise files, you must have the following installed:
-	- [list of requirements for course]
-2. Clone this repository into your local machine using the terminal (Mac), CMD (Windows), or a GUI tool like SourceTree.
-3. [Course-specific instructions]
+## Chapters
 
+- `01-getting-started` — install Cilium, deploy an app, a first network policy, a first look at Hubble
+- `02-architecture` — the Cilium components (agent, operator, CNI plugin, eBPF, Envoy); mostly narration, commands run against any Cilium cluster
+- `03-ipam` — IP address management: Cluster Scope and Multi-pool
+- `04-datapath` — how packets move: intranode and internode connectivity
+- `05-service-routing` — kube-proxy replacement, Ingress and Gateway API
+- `06-network-policy` — policy anatomy, L7 (headers, hostnames, DNS) and FQDN
+- `07-encryption` — transparent encryption with WireGuard
+- `08-hubble` — observability with Hubble
+
+## Requirements
+
+The course pins **Cilium 1.20.2** and **Kubernetes 1.36**. You'll need a Linux or macOS machine with:
+
+- Docker
+- kind v0.33.0 (ships `kindest/node:v1.36.4`)
+- kubectl v1.36.4
+- Helm v3.22.0
+- the Cilium CLI v0.20.0 and the Hubble CLI v1.19.4
+
+The quickest way to get all of these is the included **Dev Container / GitHub Codespaces** setup: open the repo in a GitHub Codespace, or in VS Code with the Dev Containers extension, and the toolchain is installed for you.
 
 [0]: # (Replace these placeholder URLs with actual course URLs)
 
 [lil-course-url]: https://www.linkedin.com/learning/
 [lil-thumbnail-url]: https://media.licdn.com/dms/image/v2/D4E0DAQG0eDHsyOSqTA/learning-public-crop_675_1200/B4EZVdqqdwHUAY-/0/1741033220778?e=2147483647&v=beta&t=FxUDo6FA8W8CiFROwqfZKL_mzQhYx9loYLfjN-LNjgA
-

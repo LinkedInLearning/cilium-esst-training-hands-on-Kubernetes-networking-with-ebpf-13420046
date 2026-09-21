@@ -4,6 +4,15 @@
 
 Companion files for Chapter 3. Each step lists the command to run and the output to expect. The full walkthrough is in the course videos.
 
+## Setup
+
+Create a cluster and install Cilium with the default Cluster Scope (cluster-pool) IPAM:
+```shell
+kind create cluster --config kind.yaml
+cilium install --version "${CILIUM_VERSION:-1.20.2}"
+cilium status --wait
+```
+
 ## 3.2 Node IPs, pod IPs, and why IPs aren't identity
 
 Run:
@@ -47,7 +56,16 @@ kind-worker2         [10.244.1.0/24]
 
 ## 3.5 Multi-pool IPAM
 
-Multi-pool lets different tenants draw from different IP ranges. Cilium is installed in multi-pool mode (`multi-pool.yaml`). Create a namespace and a pool per tenant:
+Multi-pool lets different tenants draw from different IP ranges. It needs a different Cilium config, so start from a fresh cluster installed with `multi-pool.yaml`:
+```shell
+kind delete cluster
+kind create cluster --config kind.yaml
+helm repo add cilium https://helm.cilium.io/
+helm install cilium cilium/cilium --namespace kube-system --version "${CILIUM_VERSION:-1.20.2}" --values multi-pool.yaml
+cilium status --wait
+```
+
+Create a namespace and a pool per tenant:
 ```shell
 kubectl create ns acme
 kubectl create ns foobar
@@ -67,4 +85,11 @@ Expect output such as (acme from `10.20.0.0/16`, foobar from `10.30.0.0/16`):
 ```
 acme     client   1/1   Running   10.20.0.5    kind-worker2
 foobar   client   1/1   Running   10.30.0.12   kind-worker2
+```
+
+## Clean up
+
+Delete the cluster when you're done:
+```shell
+kind delete cluster
 ```

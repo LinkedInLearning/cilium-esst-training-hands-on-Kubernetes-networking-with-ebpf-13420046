@@ -6,6 +6,18 @@ Companion files for Chapter 6. Each step lists the command to run and the output
 
 > The hands-on **L3 -> L4 -> L7** network-policy demo is in Chapter 1 (features-first). This chapter covers policy **anatomy**, extra L7 matches (**headers**, **hostnames**, **DNS**), and **FQDN** policies.
 
+## Setup
+
+Create a cluster, install Cilium, and deploy nginx and the client:
+```shell
+kind create cluster --config kind.yaml
+cilium install --version "${CILIUM_VERSION:-1.20.2}"
+cilium status --wait
+kubectl apply -f nginx-deployment.yaml -f client.yaml
+kubectl rollout status deployment/nginx-deployment
+kubectl wait --for=condition=Ready pod -l app=client
+```
+
 ## 6.2 Anatomy of a network policy
 
 `sample-knp.yaml` is the Kubernetes NetworkPolicy example from the Kubernetes docs (selects `role=db`, with ingress and egress rules). Read it next to a CiliumNetworkPolicy to see the differences:
@@ -75,4 +87,11 @@ Expect output such as (the allowed FQDN succeeds, everything else is denied):
 ```
 200
 000
+```
+
+## Clean up
+
+Delete the cluster when you're done:
+```shell
+kind delete cluster
 ```

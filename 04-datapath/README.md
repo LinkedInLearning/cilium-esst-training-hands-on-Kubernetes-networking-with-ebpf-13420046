@@ -4,6 +4,15 @@
 
 Companion files for Chapter 4. Each step lists the command to run and the output to expect. The full walkthrough is in the course videos.
 
+## Setup
+
+Create a cluster and install Cilium:
+```shell
+kind create cluster --config kind.yaml
+cilium install --version "${CILIUM_VERSION:-1.20.2}"
+cilium status --wait
+```
+
 ## 4.1 Intranode connectivity
 
 Deploy two pods pinned to the same node:
@@ -40,4 +49,11 @@ Expect output such as (this course uses VXLAN encapsulation):
 ```
 routing-mode       tunnel
 tunnel-protocol    vxlan
+```
+
+## Clean up
+
+Delete the cluster when you're done:
+```shell
+kind delete cluster
 ```
