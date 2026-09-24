@@ -109,9 +109,12 @@ Expect output such as:
 ```
 
 Now watch the plugin work. In the [button label=">_ Terminal"](tab-0) tab, tail
-the plugin log on the node:
+the plugin log on the node. The log file only exists once the CNI plugin has run
+on this node (Cilium's own pods use host networking and don't create it), so use
+`tail -F` (capital F): it waits for the file to appear instead of erroring with
+"no such file or directory" when no application pod has been scheduled here yet:
 ```shell
-docker exec -it kind-worker tail -f /var/run/cilium/cilium-cni.log
+docker exec -it kind-worker tail -F /var/run/cilium/cilium-cni.log
 ```
 
 In a second terminal, create a pod on that node and wait for it to be ready
