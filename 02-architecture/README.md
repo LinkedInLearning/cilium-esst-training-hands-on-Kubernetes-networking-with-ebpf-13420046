@@ -23,14 +23,17 @@ Creating cluster "kind" ...
  ✓ Joining worker nodes 🚜
 Set kubectl context to "kind-kind"
 ```
+
+Install Cilium **1.20.1** here on purpose, so we can demonstrate `cilium upgrade`
+later in this chapter:
 ```shell
-cilium install --version "${CILIUM_VERSION:-1.20.2}"
+cilium install --version 1.20.1
 ```
 
 Expect output such as:
 ```
 🔮 Auto-detected Kubernetes kind: kind
-ℹ️  Using Cilium version 1.20.2
+ℹ️  Using Cilium version 1.20.1
 🔮 Auto-detected cluster name: kind-kind
 🔮 Auto-detected kube-proxy has been installed
 ```
@@ -269,17 +272,35 @@ cilium-envoy   3         3         3       3            3           kubernetes.i
 You have already used the Cilium CLI to install Cilium and check its status. A
 few more things it does.
 
-Show the CLI version and the Cilium version running in the cluster:
+Show the CLI version and the Cilium version running in the cluster (we installed
+1.20.1 in Setup):
 ```shell
 cilium version
 ```
 
-Expect output such as:
+Expect output such as (`running` is 1.20.1):
 ```
 cilium-cli: v0.20.0 compiled with go1.27.0 on linux/amd64
-cilium image (default): v1.20.2
-cilium image (running): 1.20.2
+cilium image (default): v1.20.1
+cilium image (stable): v1.20.2
+cilium image (running): 1.20.1
 ```
+
+The CLI can upgrade (or downgrade) your installation. Upgrade to 1.20.2:
+```shell
+cilium upgrade --version 1.20.2
+```
+
+Expect output such as:
+```
+🔮 Auto-detected Kubernetes kind: kind
+ℹ️  Using Cilium version 1.20.2
+🔮 Auto-detected cluster name: kind-kind
+🔮 Auto-detected kube-proxy has been installed
+⚠️  You maybe need to restart Cilium pods for configmap changes to take effect
+```
+
+Run `cilium version` again and `running` now shows 1.20.2.
 
 Run the built-in connectivity test. It deploys short-lived pods to verify
 pod-to-pod, pod-to-service, and network-policy connectivity, and runs for several
