@@ -1,9 +1,9 @@
 # Chapter 2: Cilium Architecture
 
 Companion files for Chapter 2. This chapter is mostly narration about the Cilium
-components (agent, operator, CNI plugin, eBPF, Envoy). Two lessons are hands-on,
-and the commands are collected here so you can reproduce them. The full
-walkthrough is in the course videos.
+components (agent, operator, CNI plugin, eBPF, Envoy). The hands-on commands from
+those lessons are collected here so you can reproduce them. The full walkthrough
+is in the course videos.
 
 ## Setup
 
@@ -46,6 +46,21 @@ Expect output such as:
  /¯¯\__/¯¯\    Envoy DaemonSet:    OK
  \__/¯¯\__/    Hubble Relay:       disabled
     \__/       ClusterMesh:        disabled
+```
+
+## The Cilium agent
+
+The Cilium agent is the core component. It runs as a DaemonSet, one pod per node,
+loading and managing the eBPF programs and reconciling Kubernetes and Cilium
+state. Check the DaemonSet:
+```shell
+kubectl get -n kube-system ds/cilium
+```
+
+Expect output such as (one pod per node, here a 3-node cluster):
+```
+NAME     DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+cilium   3         3         3       3            3           kubernetes.io/os=linux   5m
 ```
 
 ## The Cilium CNI plugin
@@ -160,6 +175,21 @@ level=DEBUG msg="Processing CNI DEL request"
 level=DEBUG msg="CNI DEL processing complete"
 ```
 
+## The Cilium operator
+
+The operator handles cluster-wide jobs such as registering Cilium's custom
+resources and IP address allocation. There is one Deployment for the whole
+cluster (run two replicas for resilience). Check it:
+```shell
+kubectl get -n kube-system deploy/cilium-operator
+```
+
+Expect output such as:
+```
+NAME              READY   UP-TO-DATE   AVAILABLE   AGE
+cilium-operator   1/1     1            1           5m
+```
+
 ## eBPF programs and maps
 
 Cilium loads eBPF programs at hooks in the kernel and keeps state in eBPF maps.
@@ -218,6 +248,55 @@ cilium_lb4_services_v2     16            0            true
 cilium_ipcache_v2          15            0            true
 cilium_lxc                 4             0            true
 ```
+
+## The role of Envoy
+
+When traffic needs application-layer (L7) processing, Ingress, Gateway API, L7
+network policy, or L7 Hubble visibility, Cilium redirects it to the Envoy proxy.
+Everything else stays on the eBPF datapath. Envoy runs as its own DaemonSet:
+```shell
+kubectl get -n kube-system ds/cilium-envoy
+```
+
+Expect output such as:
+```
+NAME           DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+cilium-envoy   3         3         3       3            3           kubernetes.io/os=linux   5m
+```
+
+## Optional components: the Cilium CLI
+
+You have already used the Cilium CLI to install Cilium and check its status. A
+few more things it does.
+
+Show the CLI version and the Cilium version running in the cluster:
+```shell
+cilium version
+```
+
+Expect output such as:
+```
+cilium-cli: v0.20.0 compiled with go1.27.0 on linux/amd64
+cilium image (default): v1.20.2
+cilium image (running): 1.20.2
+```
+
+Run the built-in connectivity test. It deploys short-lived pods to verify
+pod-to-pod, pod-to-service, and network-policy connectivity, and runs for several
+minutes before printing a pass/fail summary:
+```shell
+cilium connectivity test
+```
+
+Generate a support bundle (a ZIP) to attach to a GitHub issue. It excludes
+secrets, but review it before sharing:
+```shell
+cilium sysdump
+```
+
+> The **DNS proxy** is another optional component, but it lives inside the Cilium
+> agent, so there is no separate pod to look at. It backs FQDN network policies
+> and is covered in the Network Policy chapter.
 
 ## Clean up
 
