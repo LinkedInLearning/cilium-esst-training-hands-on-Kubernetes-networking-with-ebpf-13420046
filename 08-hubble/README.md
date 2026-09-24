@@ -11,8 +11,38 @@ FQDN policies) so `hubble observe` has plenty of different flows to filter on.
 Run:
 ```shell
 kind create cluster --config kind.yaml
+```
+
+Expect output such as:
+```
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.36.4) 🖼
+ ✓ Preparing nodes 📦 📦 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing StorageClass 💾
+ ✓ Joining worker nodes 🚜
+Set kubectl context to "kind-kind"
+```
+```shell
 helm repo add cilium https://helm.cilium.io/
+```
+
+Expect output such as:
+```
+"cilium" has been added to your repositories
+```
+```shell
 helm repo update
+```
+
+Expect output such as:
+```
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "cilium" chart repository
+Update Complete. ⎈Happy Helming!⎈
+```
+```shell
 helm install cilium cilium/cilium --version "${CILIUM_VERSION:-1.20.2}" \
   --namespace kube-system \
   --set kubeProxyReplacement=true \
@@ -22,7 +52,6 @@ helm install cilium cilium/cilium --version "${CILIUM_VERSION:-1.20.2}" \
   --set ipam.mode=kubernetes \
   --set hubble.relay.enabled=true \
   --set hubble.ui.enabled=true
-cilium status --wait
 ```
 
 Expect output such as:
@@ -32,6 +61,9 @@ LAST DEPLOYED: Wed Sep 17 16:00:00 2026
 NAMESPACE: kube-system
 STATUS: deployed
 REVISION: 1
+```
+```shell
+cilium status --wait
 ```
 
 Check Relay is running (it's a Deployment, not a DaemonSet):
@@ -55,11 +87,53 @@ kubectl -n kube-system port-forward service/hubble-relay 4245:80 &
 Run:
 ```shell
 kubectl apply -f nginx-deployment.yaml
+```
+
+Expect output such as:
+```
+deployment.apps/nginx-deployment created
+service/nginx-service created
+```
+```shell
 kubectl apply -f client.yaml
+```
+
+Expect output such as:
+```
+deployment.apps/client created
+```
+```shell
 kubectl apply -f rogue-client.yaml
+```
+
+Expect output such as:
+```
+pod/rogue-client created
+```
+```shell
 kubectl wait --for=condition=Available deployment/nginx-deployment deployment/client
+```
+
+Expect output such as:
+```
+deployment.apps/nginx-deployment condition met
+deployment.apps/client condition met
+```
+```shell
 kubectl apply -f cnp-l7.yaml
+```
+
+Expect output such as:
+```
+ciliumnetworkpolicy.cilium.io/cnp created
+```
+```shell
 kubectl apply -f cnp-fqdn.yaml
+```
+
+Expect output such as:
+```
+ciliumnetworkpolicy.cilium.io/fqdn created
 ```
 
 Confirm the pods received both an IPv4 and an IPv6 address:
@@ -86,16 +160,28 @@ Expect output such as:
 Generate a mix of allowed, denied, HTTP and DNS traffic:
 ```shell
 CLIENT=$(kubectl get pod -l app=client -o name)
+```
+```shell
 kubectl exec "$CLIENT" -- curl -s -o /dev/null nginx-service/index.html
+```
+```shell
 kubectl exec "$CLIENT" -- curl -s -o /dev/null nginx-service/50x.html
+```
+```shell
 kubectl exec "$CLIENT" -- curl -s -o /dev/null https://cilium.io
+```
+```shell
 kubectl exec "$CLIENT" -- curl -s -o /dev/null --max-time 3 https://example.com
+```
+```shell
 kubectl exec rogue-client -- curl -s -o /dev/null --max-time 3 nginx-service
 ```
 
 Also send one request over IPv6. The Service is IPv4-only, so target the nginx pod's IPv6 address directly:
 ```shell
 NGINX_V6=$(kubectl get pod -l app=nginx -o jsonpath='{.items[0].status.podIPs[1].ip}')
+```
+```shell
 kubectl exec "$CLIENT" -- curl -s -o /dev/null -g -6 "http://[$NGINX_V6]/index.html"
 ```
 
@@ -119,9 +205,19 @@ Only the dropped flows:
 hubble observe --verdict DROPPED
 ```
 
-Only HTTP, and only a specific method:
+Only HTTP:
 ```shell
 hubble observe --protocol http
+```
+
+Expect output such as:
+```
+default/client-6b47885cdd-5qzq2:51820 (ID:24390) -> default/nginx-deployment-596fc5b99-4p8ll:80 (ID:32885) http-request FORWARDED (HTTP/1.1 GET http://nginx-service/index.html)
+default/client-6b47885cdd-5qzq2:51822 (ID:24390) -> default/nginx-deployment-596fc5b99-4p8ll:80 (ID:32885) http-request DROPPED (HTTP/1.1 GET http://nginx-service/50x.html)
+```
+
+Only HTTP, and only a specific method:
+```shell
 hubble observe --protocol http --http-method GET
 ```
 
@@ -160,6 +256,18 @@ hubble observe --from-label app=client -f
 Each flow as readable key-value pairs, then the full detail as JSON:
 ```shell
 hubble observe --to-label app=nginx --last 1 -o dict
+```
+
+Expect output such as:
+```
+  TIMESTAMP: Sep 21 11:44:52.631
+     SOURCE: default/client-6b47885cdd-5qzq2:51836
+DESTINATION: default/nginx-deployment-596fc5b99-4p8ll:80
+       TYPE: to-proxy
+    VERDICT: FORWARDED
+    SUMMARY: TCP Flags: ACK, FIN
+```
+```shell
 hubble observe --to-label app=nginx --last 1 -o json
 ```
 
@@ -168,4 +276,10 @@ hubble observe --to-label app=nginx --last 1 -o json
 Delete the cluster when you're done:
 ```shell
 kind delete cluster
+```
+
+Expect output such as:
+```
+Deleting cluster "kind" ...
+Deleted nodes: ["kind-control-plane" "kind-worker" "kind-worker2"]
 ```

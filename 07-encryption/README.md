@@ -7,12 +7,35 @@ Companion files for Chapter 7. Each step lists the command to run and the output
 Run:
 ```shell
 kind create cluster --config kind.yaml
-cilium install --version "${CILIUM_VERSION:-1.20.2}"
-cilium status --wait
-cilium encrypt status
 ```
 
-Expect output such as (encryption is off to start with; `cilium status` has no encryption line, so `cilium encrypt status` reports it):
+Expect output such as:
+```
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.36.4) 🖼
+ ✓ Preparing nodes 📦 📦 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing StorageClass 💾
+ ✓ Joining worker nodes 🚜
+Set kubectl context to "kind-kind"
+```
+```shell
+cilium install --version "${CILIUM_VERSION:-1.20.2}"
+```
+
+Expect output such as:
+```
+🔮 Auto-detected Kubernetes kind: kind
+ℹ️  Using Cilium version 1.20.2
+🔮 Auto-detected cluster name: kind-kind
+🔮 Auto-detected kube-proxy has been installed
+```
+```shell
+cilium status --wait
+```
+
+Expect output such as:
 ```
     /¯¯\
  /¯¯\__/¯¯\    Cilium:             OK
@@ -20,7 +43,13 @@ Expect output such as (encryption is off to start with; `cilium status` has no e
  /¯¯\__/¯¯\    Envoy DaemonSet:    OK
  \__/¯¯\__/    Hubble Relay:       disabled
     \__/       ClusterMesh:        disabled
+```
+```shell
+cilium encrypt status
+```
 
+Expect output such as (encryption is off to start with; `cilium status` has no encryption line, so `cilium encrypt status` reports it):
+```
 Encryption: Disabled (3/3 nodes)
 ```
 
@@ -29,6 +58,15 @@ Encryption: Disabled (3/3 nodes)
 `client-server.yaml` pins the client and the server to different nodes, so their traffic crosses the wire between nodes:
 ```shell
 kubectl apply -f client-server.yaml
+```
+
+Expect output such as:
+```
+deployment.apps/client created
+deployment.apps/nginx-deployment created
+service/nginx-service created
+```
+```shell
 kubectl get pods -o wide
 ```
 
@@ -44,6 +82,8 @@ nginx-deployment-596fc5b99-5w8rv   1/1     Running   kind-worker
 In one terminal, capture traffic on the kind bridge and filter for a secret header:
 ```shell
 BRIDGE="br-$(docker network inspect kind -f '{{.Id}}' | cut -c1-12)"
+```
+```shell
 docker run --rm --network host --privileged nicolaka/netshoot tcpdump -lAni "$BRIDGE" | grep "Bearer"
 ```
 
@@ -62,15 +102,22 @@ Authorization: Bearer supersecret
 Run:
 ```shell
 cilium config set enable-wireguard true
-cilium status --wait
-cilium encrypt status
 ```
 
 Expect output such as:
 ```
 ✨ Patching ConfigMap cilium-config with enable-wireguard=true...
 ♻️  Restarted Cilium pods
+```
+```shell
+cilium status --wait
+```
+```shell
+cilium encrypt status
+```
 
+Expect output such as:
+```
 Encryption: Wireguard (3/3 nodes)
 ```
 
@@ -79,6 +126,8 @@ Encryption: Wireguard (3/3 nodes)
 Capture on the kind bridge, filtering for WireGuard (UDP 51871):
 ```shell
 BRIDGE="br-$(docker network inspect kind -f '{{.Id}}' | cut -c1-12)"
+```
+```shell
 docker run --rm --network host --privileged nicolaka/netshoot tcpdump -ni "$BRIDGE" udp and port 51871
 ```
 
@@ -98,4 +147,10 @@ IP 172.18.0.2.51871 > 172.18.0.3.51871: UDP, length 256
 Delete the cluster when you're done:
 ```shell
 kind delete cluster
+```
+
+Expect output such as:
+```
+Deleting cluster "kind" ...
+Deleted nodes: ["kind-control-plane" "kind-worker" "kind-worker2"]
 ```

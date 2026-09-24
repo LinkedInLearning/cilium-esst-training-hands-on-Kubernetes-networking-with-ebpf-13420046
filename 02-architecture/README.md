@@ -10,8 +10,42 @@ walkthrough is in the course videos.
 Create a cluster and install Cilium:
 ```shell
 kind create cluster --config kind.yaml
+```
+
+Expect output such as:
+```
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.36.4) 🖼
+ ✓ Preparing nodes 📦 📦 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing StorageClass 💾
+ ✓ Joining worker nodes 🚜
+Set kubectl context to "kind-kind"
+```
+```shell
 cilium install --version "${CILIUM_VERSION:-1.20.2}"
+```
+
+Expect output such as:
+```
+🔮 Auto-detected Kubernetes kind: kind
+ℹ️  Using Cilium version 1.20.2
+🔮 Auto-detected cluster name: kind-kind
+🔮 Auto-detected kube-proxy has been installed
+```
+```shell
 cilium status --wait
+```
+
+Expect output such as:
+```
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
 ```
 
 ## The Cilium CNI plugin
@@ -53,6 +87,14 @@ To see the plugin's work in detail, turn on debug logging (it is warnings-only b
 default). This restarts the Cilium pods:
 ```shell
 cilium config set debug true
+```
+
+Expect output such as:
+```
+✨ Patching ConfigMap cilium-config with debug=true...
+♻️  Restarted Cilium pods
+```
+```shell
 cilium status --wait
 ```
 
@@ -77,7 +119,19 @@ In a second terminal, create a pod on that node and wait for it to be ready
 Pending, and the plugin only fires once the pod is actually scheduled):
 ```shell
 kubectl run cni-demo --image=nginx --overrides='{"spec":{"nodeName":"kind-worker"}}'
+```
+
+Expect output such as:
+```
+pod/cni-demo created
+```
+```shell
 kubectl wait --for=condition=Ready pod/cni-demo --timeout=90s
+```
+
+Expect output such as:
+```
+pod/cni-demo condition met
 ```
 
 Back in the first terminal, you will see the ADD sequence build the pod's
@@ -110,11 +164,26 @@ Inspect them with `bpftool` and `cilium-dbg`, both of which ship inside the
 Cilium agent (`bpftool` is **not** on the kind node's PATH; run it through the
 agent, which sees the node's own network namespace).
 
-Deploy a pod so there is a pod veth to observe, then list the programs attached
-to network interfaces:
+Deploy a pod so there is a pod veth to observe:
 ```shell
 kubectl run demo --image=nginx --overrides='{"spec":{"nodeName":"kind-worker"}}'
+```
+
+Expect output such as:
+```
+pod/demo created
+```
+```shell
 kubectl wait --for=condition=Ready pod/demo --timeout=90s
+```
+
+Expect output such as:
+```
+pod/demo condition met
+```
+
+List the programs attached to network interfaces:
+```shell
 kubectl exec -n kube-system ds/cilium -c cilium-agent -- bpftool net show
 ```
 
@@ -152,6 +221,16 @@ cilium_lxc                 4             0            true
 Revert debug logging and delete the cluster:
 ```shell
 kubectl delete pod demo --ignore-not-found
+```
+```shell
 cilium config set debug false
+```
+```shell
 kind delete cluster
+```
+
+Expect output such as:
+```
+Deleting cluster "kind" ...
+Deleted nodes: ["kind-control-plane" "kind-worker" "kind-worker2"]
 ```

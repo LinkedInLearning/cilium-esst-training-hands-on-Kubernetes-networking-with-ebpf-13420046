@@ -26,6 +26,16 @@ Set kubectl context to "kind-kind"
 Run:
 ```shell
 cilium install --version "${CILIUM_VERSION:-1.20.2}"
+```
+
+Expect output such as:
+```
+🔮 Auto-detected Kubernetes kind: kind
+ℹ️  Using Cilium version 1.20.2
+🔮 Auto-detected cluster name: kind-kind
+🔮 Auto-detected kube-proxy has been installed
+```
+```shell
 cilium status --wait
 ```
 
@@ -53,6 +63,15 @@ Helm chart version:    1.20.2
 Run:
 ```shell
 kubectl apply -f nginx-deployment.yaml -f client.yaml
+```
+
+Expect output such as:
+```
+deployment.apps/nginx-deployment created
+service/nginx-service created
+pod/client created
+```
+```shell
 kubectl get pods -o wide
 ```
 
@@ -80,20 +99,51 @@ Tighten access to nginx step by step: L3 (identity), then L4 (port/protocol), th
 **L3, allow only the client by label.** Deploy a rogue client with no matching label, then apply the L3 policy:
 ```shell
 kubectl apply -f rogue-client.yaml
-kubectl apply -f cnp-l3.yaml
-kubectl exec client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
-kubectl exec rogue-client  -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
 ```
 
-Expect output such as (authorized client allowed, rogue client dropped):
+Expect output such as:
+```
+pod/rogue-client created
+```
+```shell
+kubectl apply -f cnp-l3.yaml
+```
+
+Expect output such as:
+```
+ciliumnetworkpolicy.cilium.io/cnp created
+```
+
+The authorized client is allowed:
+```shell
+kubectl exec client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
+```
+
+Expect output such as:
 ```
 200
+```
+
+The rogue client is dropped:
+```shell
+kubectl exec rogue-client -- curl -m 5 -s -o /dev/null -w "%{http_code}\n" nginx-service
+```
+
+Expect output such as:
+```
 000
 ```
 
 **L4, restrict to TCP port 80.** ICMP is no longer allowed, so ping is dropped:
 ```shell
 kubectl apply -f cnp-l3l4.yaml
+```
+
+Expect output such as:
+```
+ciliumnetworkpolicy.cilium.io/cnp configured
+```
+```shell
 kubectl exec client -- ping -c 3 $(kubectl get pod -l app=nginx -o jsonpath='{.items[0].status.podIP}')
 ```
 
@@ -105,13 +155,30 @@ Expect output such as:
 **L7, allow only GET /index.html.** Other paths are denied by Cilium's Envoy proxy:
 ```shell
 kubectl apply -f cnp-l7.yaml
+```
+
+Expect output such as:
+```
+ciliumnetworkpolicy.cilium.io/cnp configured
+```
+
+The non-allowed path returns Envoy's denial:
+```shell
 kubectl exec client -- curl -s nginx-service/50x.html
+```
+
+Expect output such as:
+```
+Access denied
+```
+
+The allowed path returns 200:
+```shell
 kubectl exec client -- curl -s -o /dev/null -w "%{http_code}\n" nginx-service/index.html
 ```
 
-Expect output such as (the non-allowed path returns Envoy's denial, the allowed path returns 200):
+Expect output such as:
 ```
-Access denied
 200
 ```
 
@@ -119,9 +186,11 @@ Access denied
 
 ## 1.5 Monitor your app with Hubble
 
-Enable Hubble and confirm it is healthy:
+Enable Hubble, then confirm it is healthy:
 ```shell
 cilium hubble enable
+```
+```shell
 cilium status --wait
 ```
 
@@ -133,6 +202,8 @@ Hubble Relay:       OK
 Port-forward, then observe flows for the client:
 ```shell
 cilium hubble port-forward &
+```
+```shell
 hubble observe --pod client
 ```
 
@@ -158,4 +229,10 @@ default/client:53548 (ID:2587) -> default/nginx-deployment-58669cf4d6-wfcgt:80 (
 Delete the cluster when you're done:
 ```shell
 kind delete cluster
+```
+
+Expect output such as:
+```
+Deleting cluster "kind" ...
+Deleted nodes: ["kind-control-plane" "kind-worker" "kind-worker2"]
 ```

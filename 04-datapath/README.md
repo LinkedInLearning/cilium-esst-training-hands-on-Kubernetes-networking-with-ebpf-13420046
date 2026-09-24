@@ -7,8 +7,42 @@ Companion files for Chapter 4. Each step lists the command to run and the output
 Create a cluster and install Cilium:
 ```shell
 kind create cluster --config kind.yaml
+```
+
+Expect output such as:
+```
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.36.4) 🖼
+ ✓ Preparing nodes 📦 📦 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing StorageClass 💾
+ ✓ Joining worker nodes 🚜
+Set kubectl context to "kind-kind"
+```
+```shell
 cilium install --version "${CILIUM_VERSION:-1.20.2}"
+```
+
+Expect output such as:
+```
+🔮 Auto-detected Kubernetes kind: kind
+ℹ️  Using Cilium version 1.20.2
+🔮 Auto-detected cluster name: kind-kind
+🔮 Auto-detected kube-proxy has been installed
+```
+```shell
 cilium status --wait
+```
+
+Expect output such as:
+```
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       disabled
+    \__/       ClusterMesh:        disabled
 ```
 
 ## 4.1 Intranode connectivity
@@ -16,6 +50,14 @@ cilium status --wait
 Deploy two pods pinned to the same node:
 ```shell
 kubectl apply -f intra-node-example.yaml
+```
+
+Expect output such as:
+```
+pod/pod-a created
+pod/pod-b created
+```
+```shell
 kubectl get pods -o wide
 ```
 
@@ -55,4 +97,10 @@ tunnel-protocol     vxlan
 Delete the cluster when you're done:
 ```shell
 kind delete cluster
+```
+
+Expect output such as:
+```
+Deleting cluster "kind" ...
+Deleted nodes: ["kind-control-plane" "kind-worker" "kind-worker2"]
 ```
