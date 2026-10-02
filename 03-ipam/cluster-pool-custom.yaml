@@ -1,0 +1,7 @@
+ipam:
+  mode: cluster-pool
+  operator:
+    clusterPoolIPv4MaskSize: 29
+    clusterPoolIPv4PodCIDRList:
+      - 10.0.42.0/28
+      - 10.0.84.0/28

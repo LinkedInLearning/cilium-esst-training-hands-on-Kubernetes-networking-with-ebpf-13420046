@@ -177,6 +177,97 @@ kind-worker          [10.0.0.0/24]
 kind-worker2         [10.0.1.0/24]
 ```
 
+### A non-default pool size
+
+Both the pool CIDRs and the per-node block size are configurable. `cluster-pool-custom.yaml` asks the operator to hand each node a **/29** (8 addresses) carved from two small **/28** pools:
+```yaml
+ipam:
+  mode: cluster-pool
+  operator:
+    clusterPoolIPv4MaskSize: 29
+    clusterPoolIPv4PodCIDRList:
+      - 10.0.42.0/28
+      - 10.0.84.0/28
+```
+
+Changing the pool means re-installing on a fresh cluster:
+```shell
+kind delete cluster
+```
+
+Expect output such as:
+```
+Deleting cluster "kind" ...
+Deleted nodes: ["kind-control-plane" "kind-worker" "kind-worker2"]
+```
+```shell
+kind create cluster --config kind.yaml
+```
+```shell
+cilium install --version "${CILIUM_VERSION:-1.20.2}" --values cluster-pool-custom.yaml
+```
+
+Expect output such as:
+```
+🔮 Auto-detected Kubernetes kind: kind
+ℹ️  Using Cilium version 1.20.2
+🔮 Auto-detected cluster name: kind-kind
+🔮 Auto-detected kube-proxy has been installed
+```
+```shell
+cilium status --wait
+```
+
+Each node now gets a /29 carved from a /28 pool:
+```shell
+kubectl get ciliumnodes -o custom-columns='NODE:.metadata.name,PODCIDRS:.spec.ipam.podCIDRs'
+```
+
+Expect output such as:
+```
+NODE                 PODCIDRS
+kind-control-plane   [10.0.42.0/29]
+kind-worker          [10.0.42.8/29]
+kind-worker2         [10.0.84.0/29]
+```
+
+The first two /29s are the two halves of the `10.0.42.0/28` pool; `kind-worker2` drew its /29 from the second `10.0.84.0/28` pool. Deploy a pod and confirm its IP sits inside its node's /29:
+```shell
+kubectl run nginx --image=nginx
+```
+
+Expect output such as:
+```
+pod/nginx created
+```
+```shell
+kubectl wait --for=condition=Ready pod/nginx
+```
+
+Expect output such as:
+```
+pod/nginx condition met
+```
+```shell
+kubectl get pod nginx -o custom-columns='POD:.metadata.name,IP:.status.podIP,NODE:.spec.nodeName'
+```
+
+Expect output such as:
+```
+POD     IP           NODE
+nginx   10.0.42.10   kind-worker
+```
+
+`nginx` landed on `kind-worker` (`10.0.42.8/29`), and `10.0.42.10` falls inside that /29, carved from the `10.0.42.0/28` pool. Remove it before continuing:
+```shell
+kubectl delete pod nginx
+```
+
+Expect output such as:
+```
+pod "nginx" deleted from default namespace
+```
+
 ## 3.5 Multi-pool IPAM
 
 Multi-pool lets different tenants draw from different IP ranges. It needs a different Cilium config, so start from a fresh cluster installed with `multi-pool.yaml`:
