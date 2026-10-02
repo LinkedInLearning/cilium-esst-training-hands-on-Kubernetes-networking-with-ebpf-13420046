@@ -4,7 +4,7 @@ Companion files for Chapter 3. Each step lists the command to run and the output
 
 ## Setup
 
-Create a cluster and install Cilium with Cluster Scope (cluster-pool) IPAM. Cluster Scope is Cilium's Helm default, but on kind the Cilium CLI autodetects Kubernetes-host IPAM, so we ask for it explicitly:
+Create a cluster and install Cilium with its defaults. On kind, the Cilium CLI autodetects **Kubernetes host-scope** IPAM, so that is the mode we explore first:
 ```shell
 kind create cluster --config kind.yaml
 ```
@@ -21,7 +21,7 @@ Creating cluster "kind" ...
 Set kubectl context to "kind-kind"
 ```
 ```shell
-cilium install --version "${CILIUM_VERSION:-1.20.2}" --set ipam.mode=cluster-pool
+cilium install --version "${CILIUM_VERSION:-1.20.2}"
 ```
 
 Expect output such as:
@@ -55,14 +55,106 @@ kubectl get ciliumnodes -o custom-columns='NODE:.metadata.name,PODCIDRS:.spec.ip
 Expect output such as:
 ```
 NODE                 PODCIDRS
-kind-control-plane   [10.0.2.0/24]
-kind-worker          [10.0.0.0/24]
-kind-worker2         [10.0.1.0/24]
+kind-control-plane   [10.244.0.0/24]
+kind-worker          [10.244.2.0/24]
+kind-worker2         [10.244.1.0/24]
 ```
 
-## 3.4 Cluster Scope IPAM (the Cilium default)
+## 3.3 Kubernetes Host Scope IPAM
 
-Cluster Scope (a.k.a. cluster-pool) is the default: the Cilium **operator**, not Kubernetes, allocates a PodCIDR per node from a large pool (`10.0.0.0/8` by default). Watch the operator start its allocator:
+Kubernetes host-scope is the mode the Cilium CLI autodetects on kind. Here Kubernetes itself, not Cilium, owns addressing: the **kube-controller-manager** carves a per-node PodCIDR out of the cluster-wide CIDR, writes it onto each `Node`, and Cilium simply consumes it.
+
+See the cluster-wide CIDR the controller-manager hands out:
+```shell
+kubectl -n kube-system get pod -l component=kube-controller-manager -o jsonpath='{.items[0].spec.containers[0].command}' | tr ',' '\n' | grep cluster-cidr
+```
+
+Expect output such as:
+```
+--cluster-cidr=10.244.0.0/16
+```
+
+Each node gets a slice of that range, recorded on the `Node` object itself (not on a Cilium CRD):
+```shell
+kubectl get nodes -o custom-columns='NODE:.metadata.name,PODCIDR:.spec.podCIDR'
+```
+
+Expect output such as:
+```
+NODE                 PODCIDR
+kind-control-plane   10.244.0.0/24
+kind-worker          10.244.2.0/24
+kind-worker2         10.244.1.0/24
+```
+
+Deploy a pod and confirm it gets an address from the PodCIDR of the node it lands on:
+```shell
+kubectl run nginx --image=nginx
+```
+
+Expect output such as:
+```
+pod/nginx created
+```
+```shell
+kubectl wait --for=condition=Ready pod/nginx
+```
+
+Expect output such as:
+```
+pod/nginx condition met
+```
+```shell
+kubectl get pod nginx -o custom-columns='POD:.metadata.name,IP:.status.podIP,NODE:.spec.nodeName'
+```
+
+Expect output such as:
+```
+POD     IP            NODE
+nginx   10.244.1.55   kind-worker2
+```
+
+Here `nginx` landed on `kind-worker2`, whose PodCIDR is `10.244.1.0/24`, and its IP `10.244.1.55` falls inside that range. Remove the pod before moving on:
+```shell
+kubectl delete pod nginx
+```
+
+Expect output such as:
+```
+pod "nginx" deleted from default namespace
+```
+
+## 3.4 Cluster Scope IPAM
+
+Cluster Scope (a.k.a. cluster-pool) is Cilium's own default: the Cilium **operator**, not Kubernetes, allocates a PodCIDR per node from a large pool (`10.0.0.0/8` by default). It isn't the mode the CLI picks on kind, so switch to it on a fresh cluster:
+```shell
+kind delete cluster
+```
+
+Expect output such as:
+```
+Deleting cluster "kind" ...
+Deleted nodes: ["kind-control-plane" "kind-worker" "kind-worker2"]
+```
+```shell
+kind create cluster --config kind.yaml
+```
+```shell
+cilium install --version "${CILIUM_VERSION:-1.20.2}" --set ipam.mode=cluster-pool
+```
+
+Expect output such as:
+```
+🔮 Auto-detected Kubernetes kind: kind
+ℹ️  Using Cilium version 1.20.2
+🔮 Auto-detected cluster name: kind-kind
+🔮 Auto-detected kube-proxy has been installed
+```
+```shell
+cilium status --wait
+```
+
+Watch the operator start its allocator:
 ```shell
 kubectl -n kube-system logs deploy/cilium-operator | grep -i "ClusterPool IP allocator"
 ```
