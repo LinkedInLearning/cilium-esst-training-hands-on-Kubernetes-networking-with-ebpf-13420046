@@ -195,7 +195,7 @@ customresourcedefinition.apiextensions.k8s.io/tlsroutes.gateway.networking.k8s.i
 ```
 ```shell
 helm upgrade cilium cilium/cilium --version "${CILIUM_VERSION:-1.20.2}" --namespace kube-system \
-  --reuse-values --set kubeProxyReplacement=true --set gatewayAPI.enabled=true
+  --reuse-values --set kubeProxyReplacement=true --set gatewayAPI.enabled=true --set l2announcements.enabled=true
 ```
 
 Expect output such as:
