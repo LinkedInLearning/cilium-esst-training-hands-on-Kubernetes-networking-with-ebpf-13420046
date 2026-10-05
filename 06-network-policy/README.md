@@ -167,12 +167,13 @@ HTTP/2 200
 
 The blocked name never resolves:
 ```shell
-kubectl exec client -- curl -s https://example.com
+kubectl exec client -- curl -sS https://example.com
 ```
 
 Expect output such as:
 ```
-curl: (6) Could not resolve host: example.com
+curl: (6) Could not resolve host: example.com (DNS server refused query)
+command terminated with exit code 6
 ```
 
 Remove it before the FQDN demo so the two egress policies do not combine:
