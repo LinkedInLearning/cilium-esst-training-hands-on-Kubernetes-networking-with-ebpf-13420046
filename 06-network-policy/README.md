@@ -114,7 +114,7 @@ Expect output such as:
 200
 ```
 
-**Match on the hostname.** Only allow requests whose Host header is `nginx.isovalent.com`:
+**Match on the hostname.** Only allow requests whose Host header is `linkedin.com`:
 ```shell
 kubectl apply -f cnp-l7-host.yaml
 ```
@@ -136,7 +136,7 @@ Expect output such as:
 
 The matching host is allowed:
 ```shell
-kubectl exec client -- curl -s -o /dev/null -w "%{http_code}\n" -H "Host: nginx.isovalent.com" nginx-service
+kubectl exec client -- curl -s -o /dev/null -w "%{http_code}\n" -H "Host: linkedin.com" nginx-service
 ```
 
 Expect output such as:

@@ -18,4 +18,4 @@ spec:
           rules:
             http:
               - method: "GET"
-                host: 'nginx\.isovalent\.com'
+                host: 'linkedin\.com'

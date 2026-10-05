@@ -1,0 +1,12 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-egress-world
+  namespace: default
+spec:
+  endpointSelector:
+    matchLabels:
+      app: client
+  egress:
+    - toEntities:
+        - world
