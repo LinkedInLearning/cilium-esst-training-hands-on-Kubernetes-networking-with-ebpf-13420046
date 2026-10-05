@@ -4,7 +4,7 @@ metadata:
   name: nginx-route
 spec:
   parentRefs:
-  - name: nginx-gateway
+  - name: sample-gateway
     namespace: default
   rules:
   - matches:

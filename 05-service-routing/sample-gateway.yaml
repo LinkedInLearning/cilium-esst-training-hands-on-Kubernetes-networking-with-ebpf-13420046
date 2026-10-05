@@ -1,8 +1,7 @@
----
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: nginx-gateway
+  name: sample-gateway
 spec:
   gatewayClassName: cilium
   listeners:

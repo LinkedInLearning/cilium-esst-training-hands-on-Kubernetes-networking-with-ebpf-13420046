@@ -219,24 +219,24 @@ daemonset.apps/cilium restarted
 
 Create the LB IP pool, L2 announcement, Gateway and route, then reach it:
 ```shell
-kubectl apply -f pool.yaml -f l2policy.yaml -f basic-gateway.yaml -f basic-http-route.yaml
+kubectl apply -f pool.yaml -f l2policy.yaml -f sample-gateway.yaml -f nginx-route.yaml
 ```
 
 Expect output such as:
 ```
 ciliumloadbalancerippool.cilium.io/pool created
 ciliuml2announcementpolicy.cilium.io/policy1 created
-gateway.gateway.networking.k8s.io/nginx-gateway created
+gateway.gateway.networking.k8s.io/sample-gateway created
 httproute.gateway.networking.k8s.io/nginx-route created
 ```
 ```shell
-kubectl get gateway nginx-gateway
+kubectl get gateway sample-gateway
 ```
 
 Expect output such as:
 ```
-NAME            CLASS    ADDRESS          PROGRAMMED   AGE
-nginx-gateway   cilium   172.18.255.200   True         20s
+NAME             CLASS    ADDRESS          PROGRAMMED   AGE
+sample-gateway   cilium   172.18.255.200   True         20s
 ```
 ```shell
 curl -m5 -s http://172.18.255.200/ | grep -o "<title>.*</title>"
@@ -249,7 +249,7 @@ Expect output such as:
 
 > **Reaching the LoadBalancer IP.** The address (`172.18.255.200`) is announced on the kind Docker bridge via L2 (ARP). On **Linux** Docker, `curl` from the host reaches it directly. On **Docker Desktop** (macOS/Windows) the bridge lives inside a VM and ARP announcements are not visible from the host, so the `curl` above will time out. There, verify the route from inside the cluster instead:
 > ```shell
-> GWIP=$(kubectl get svc cilium-gateway-nginx-gateway -o jsonpath='{.spec.clusterIP}')
+> GWIP=$(kubectl get svc cilium-gateway-sample-gateway -o jsonpath='{.spec.clusterIP}')
 > kubectl run gwtest --image=nicolaka/netshoot --restart=Never --command -- sleep 60
 > kubectl wait --for=condition=Ready pod/gwtest
 > kubectl exec gwtest -- curl -s "http://$GWIP/" | grep -o "<title>.*</title>"
