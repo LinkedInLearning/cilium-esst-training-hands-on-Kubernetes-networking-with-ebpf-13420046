@@ -3,10 +3,230 @@
 Companion files for Chapter 8. Each step lists the command to run and the output
 to expect. The full walkthrough is in the course videos.
 
-The cluster here is deliberately feature-rich (dual-stack, encapsulation, L7 and
-FQDN policies) so `hubble observe` has plenty of different flows to filter on.
+This chapter has two parts. **8.1** is a quick tour on a simple cluster: enable
+Hubble, the UI, and Prometheus/Grafana metrics. **8.2** then rebuilds on a
+deliberately feature-rich cluster (dual-stack, encapsulation, L7 and FQDN
+policies) so `hubble observe` has plenty of different flows to filter on.
 
-## 8.1 Enable Hubble Relay and the UI
+## 8.1 Enable Hubble, the UI, and metrics
+
+Start on a simple single-stack cluster (the Getting Started scenario) and install Cilium:
+```shell
+kind create cluster --config kind-single-stack.yaml
+```
+
+Expect output such as:
+```
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.36.4) 🖼
+ ✓ Preparing nodes 📦 📦 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing StorageClass 💾
+ ✓ Joining worker nodes 🚜
+Set kubectl context to "kind-kind"
+```
+```shell
+cilium install --version "${CILIUM_VERSION:-1.20.2}"
+```
+
+Expect output such as:
+```
+🔮 Auto-detected Kubernetes kind: kind
+ℹ️  Using Cilium version 1.20.2
+🔮 Auto-detected cluster name: kind-kind
+🔮 Auto-detected kube-proxy has been installed
+```
+```shell
+cilium status --wait
+```
+
+Deploy the sample app, a client, a rogue client, and the L7 + FQDN policies:
+```shell
+kubectl apply -f nginx-deployment.yaml -f client.yaml -f rogue-client.yaml
+```
+
+Expect output such as:
+```
+deployment.apps/nginx-deployment created
+service/nginx-service created
+deployment.apps/client created
+pod/rogue-client created
+```
+```shell
+kubectl wait --for=condition=Available deployment/nginx-deployment deployment/client
+```
+
+Expect output such as:
+```
+deployment.apps/nginx-deployment condition met
+deployment.apps/client condition met
+```
+```shell
+kubectl apply -f cnp-l7.yaml -f cnp-fqdn.yaml
+```
+
+Expect output such as:
+```
+ciliumnetworkpolicy.cilium.io/cnp created
+ciliumnetworkpolicy.cilium.io/fqdn created
+```
+
+Enable Hubble Relay and the UI:
+```shell
+cilium hubble enable --ui
+```
+```shell
+cilium status --wait
+```
+
+Expect output such as:
+```
+Hubble Relay:       OK
+```
+
+Generate a mix of allowed, denied, HTTP and DNS traffic:
+```shell
+CLIENT=$(kubectl get pod -l app=client -o name)
+```
+```shell
+kubectl exec "$CLIENT" -- curl -s -o /dev/null nginx-service/index.html
+```
+```shell
+kubectl exec "$CLIENT" -- curl -s -o /dev/null nginx-service/50x.html
+```
+```shell
+kubectl exec "$CLIENT" -- curl -s -o /dev/null --max-time 5 https://cilium.io
+```
+```shell
+kubectl exec "$CLIENT" -- curl -s -o /dev/null --max-time 3 https://example.com
+```
+```shell
+kubectl exec rogue-client -- curl -s -o /dev/null --max-time 3 nginx-service
+```
+
+Port-forward the Relay and watch the flows from the CLI:
+```shell
+cilium hubble port-forward &
+```
+```shell
+hubble observe --pod client
+```
+
+Expect output such as:
+```
+default/client-6b47885cdd-hr5z2:50412 (ID:55620) -> default/nginx-deployment-596fc5b99-4skmc:80 (ID:17950) to-proxy FORWARDED (TCP Flags: ACK, PSH)
+default/client-6b47885cdd-hr5z2:50412 (ID:55620) -> default/nginx-deployment-596fc5b99-4skmc:80 (ID:17950) http-request FORWARDED (HTTP/1.1 GET http://nginx-service/index.html)
+default/client-6b47885cdd-hr5z2:50412 (ID:55620) <- default/nginx-deployment-596fc5b99-4skmc:80 (ID:17950) http-response FORWARDED (HTTP/1.1 200 2ms (GET http://nginx-service/index.html))
+default/client-6b47885cdd-hr5z2:41787 (ID:55620) -> kube-system/coredns-589f44dc88-n48rd:53 (ID:37209) dns-request proxy FORWARDED (DNS Query nginx-service.default.svc.cluster.local. A)
+```
+
+Open the UI in your browser:
+```shell
+cilium hubble ui
+```
+
+Or port-forward it and browse to `http://localhost:12000`:
+```shell
+kubectl port-forward -n kube-system svc/hubble-ui 12000:80 &
+```
+
+Pick the `default` namespace, re-run the curls above, and watch the service map and flow table update live.
+
+### Metrics with Prometheus and Grafana
+
+Cilium and Hubble don't expose Prometheus metrics by default. Turn them on with a Helm upgrade:
+```shell
+helm repo add cilium https://helm.cilium.io/
+```
+
+Expect output such as:
+```
+"cilium" has been added to your repositories
+```
+```shell
+helm upgrade cilium cilium/cilium --version "${CILIUM_VERSION:-1.20.2}" --namespace kube-system \
+  --reuse-values \
+  --set prometheus.enabled=true \
+  --set operator.prometheus.enabled=true \
+  --set hubble.enabled=true \
+  --set hubble.metrics.enableOpenMetrics=true \
+  --set 'hubble.metrics.enabled={dns,drop,tcp,flow,port-distribution,icmp,httpV2}'
+```
+
+Expect output such as:
+```
+Release "cilium" has been upgraded. Happy Helming!
+```
+```shell
+kubectl -n kube-system rollout restart ds/cilium deploy/cilium-operator
+```
+
+Expect output such as:
+```
+daemonset.apps/cilium restarted
+deployment.apps/cilium-operator restarted
+```
+```shell
+kubectl -n kube-system rollout status ds/cilium
+```
+
+Deploy the ready-made Prometheus + Grafana stack from the Cilium docs (it ships with Cilium and Hubble dashboards pre-loaded):
+```shell
+kubectl apply -f https://raw.githubusercontent.com/cilium/cilium/1.20.2/examples/kubernetes/addons/prometheus/monitoring-example.yaml
+```
+
+Expect output such as:
+```
+namespace/cilium-monitoring created
+serviceaccount/prometheus-k8s created
+configmap/grafana-config created
+configmap/grafana-cilium-dashboard created
+configmap/grafana-cilium-operator-dashboard created
+configmap/grafana-hubble-dashboard created
+configmap/grafana-hubble-l7-http-metrics-by-workload created
+configmap/prometheus created
+clusterrole.rbac.authorization.k8s.io/prometheus created
+clusterrolebinding.rbac.authorization.k8s.io/prometheus created
+service/grafana created
+service/prometheus created
+deployment.apps/grafana created
+deployment.apps/prometheus created
+```
+```shell
+kubectl -n cilium-monitoring rollout status deploy/grafana deploy/prometheus
+```
+
+Expect output such as:
+```
+deployment "grafana" successfully rolled out
+deployment "prometheus" successfully rolled out
+```
+
+Port-forward Grafana and open `http://localhost:3000` (the Cilium and Hubble dashboards are pre-loaded):
+```shell
+kubectl -n cilium-monitoring port-forward service/grafana 3000:3000 &
+```
+
+Port-forward Prometheus and open `http://localhost:9090` to query the raw metrics:
+```shell
+kubectl -n cilium-monitoring port-forward service/prometheus 9090:9090 &
+```
+
+## 8.2 Filter flows end-to-end on a dual-stack cluster
+
+### Recreate the cluster and install Cilium
+
+Delete the simple cluster and create the dual-stack one:
+```shell
+kind delete cluster
+```
+
+Expect output such as:
+```
+Deleting cluster "kind" ...
+Deleted nodes: ["kind-control-plane" "kind-worker" "kind-worker2"]
+```
 
 Run:
 ```shell
@@ -82,7 +302,7 @@ Point the Hubble CLI at the Relay:
 kubectl -n kube-system port-forward service/hubble-relay 4245:80 &
 ```
 
-## 8.2 Deploy the workloads and generate flows
+### Deploy the workloads and generate flows
 
 Run:
 ```shell
@@ -187,7 +407,7 @@ kubectl exec "$CLIENT" -- curl -s -o /dev/null -g -6 "http://[$NGINX_V6]/index.h
 
 In order: allowed by the L7 policy, denied by the L7 policy, allowed by the FQDN policy, denied by the FQDN policy, denied at L3 (the rogue client), and one allowed request over IPv6.
 
-## 8.3 Find flows with `hubble observe`
+### Find flows with `hubble observe`
 
 All traffic to nginx (compact output shows the trace point and verdict):
 ```shell
