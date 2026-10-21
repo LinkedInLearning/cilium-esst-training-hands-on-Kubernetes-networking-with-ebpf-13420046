@@ -20,7 +20,7 @@ esac
 : "${HELM_VERSION:=v3.22.0}"
 : "${KIND_VERSION:=v0.33.0}"
 : "${CILIUM_CLI_VERSION:=v0.20.0}"
-: "${HUBBLE_VERSION:=v1.19.4}"
+: "${HUBBLE_VERSION:=v1.20.2}"
 : "${CILIUM_VERSION:=1.20.2}"
 
 # --- kubectl ---

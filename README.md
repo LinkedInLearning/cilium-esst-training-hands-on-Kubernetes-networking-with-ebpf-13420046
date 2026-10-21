@@ -35,7 +35,7 @@ The course pins **Cilium 1.20.2** and **Kubernetes 1.36**. You'll need a Linux o
 - kind v0.33.0 (ships `kindest/node:v1.36.4`)
 - kubectl v1.36.4
 - Helm v3.22.0
-- the Cilium CLI v0.20.0 and the Hubble CLI v1.19.4
+- the Cilium CLI v0.20.0 and the Hubble CLI v1.20.2
 
 The quickest way to get all of these is the included **Dev Container / GitHub Codespaces** setup: open the repo in a GitHub Codespace, or in VS Code with the Dev Containers extension, and the toolchain is installed for you.
 
