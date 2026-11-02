@@ -51,6 +51,12 @@ The course pins **Cilium 1.20.2** and **Kubernetes 1.36**. You'll need a Linux o
 
 The quickest way to get all of these is the included **Dev Container / GitHub Codespaces** setup: open the repo in a GitHub Codespace, or in VS Code with the Dev Containers extension, and the toolchain is installed for you.
 
+## Instructor
+Nico Vibert - Principal Engineer
+
+Nico Vibert is a Principal Engineer at Isovalent, Cisco, specialising in Kubernetes networking and Cilium.
+At Isovalent, part of Cisco, Nico helps organisations design, operate, and understand Kubernetes networking at scale, bridging network engineering and cloud native platforms. He led the development of two CNCF Kubernetes networking certifications: the Cilium Certified Associate (CCA) and the Certified Kubernetes Network Engineer (CKNE). He is the author or co-author of several books, including Cilium Up and Running (O'Reilly), with a CKNE study guide due in 2027. A regular speaker at KubeCon and Cisco Live, he has been named a Distinguished Speaker multiple times. Earlier in his career he worked as a network engineer and architect, holding the CCIE Routing and Switching certification.
+
 [0]: # (Replace these placeholder URLs with actual course URLs)
 
 [lil-course-url]: https://www.linkedin.com/learning/cilium-essential-training-hands-on-kubernetes-networking-with-ebpf-57337523/why-cilium-has-become-the-leading-cni?u=104
